@@ -1,0 +1,73 @@
+"""
+Módulo central — exportações do pacote.
+"""
+
+from carq.core.config import Settings, get_settings, settings
+from carq.core.exceptions import (
+    CARQException,
+    ChunkingError,
+    ChunkValidationError,
+    CircuitBreakerOpenError,
+    ConfigurationError,
+    ConnectionPoolError,
+    DatabaseConfigError,
+    DatabaseError,
+    DocumentValidationError,
+    DuplicateResourceError,
+    EmbeddingConfigError,
+    EmbeddingError,
+    ExternalServiceError,
+    IdempotencyError,
+    IntegrityError,
+    OpenAIError,
+    PDFParsingError,
+    ProcessingError,
+    QueueError,
+    RateLimitError,
+    RetryableError,
+    TaskAlreadyProcessingError,
+    TaskNotFoundError,
+    TaskTimeoutError,
+    TransactionError,
+    ValidationError,
+    VectorInsertionError,
+)
+from carq.core.logging import CorrelationIDFilter, get_logger, setup_logging
+
+__all__ = [
+    "Settings",
+    "get_settings",
+    "settings",
+    # Exceptions
+    "CARQException",
+    "ConfigurationError",
+    "DatabaseConfigError",
+    "EmbeddingConfigError",
+    "DatabaseError",
+    "ConnectionPoolError",
+    "TransactionError",
+    "IdempotencyError",
+    "QueueError",
+    "TaskNotFoundError",
+    "TaskAlreadyProcessingError",
+    "RateLimitError",
+    "CircuitBreakerOpenError",
+    "ProcessingError",
+    "PDFParsingError",
+    "ChunkingError",
+    "EmbeddingError",
+    "VectorInsertionError",
+    "ValidationError",
+    "DocumentValidationError",
+    "ChunkValidationError",
+    "ExternalServiceError",
+    "OpenAIError",
+    "RetryableError",
+    "TaskTimeoutError",
+    "IntegrityError",
+    "DuplicateResourceError",
+    # Logging
+    "get_logger",
+    "setup_logging",
+    "CorrelationIDFilter",
+]

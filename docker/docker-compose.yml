@@ -1,0 +1,98 @@
+version: '3.9'
+
+services:
+  # PostgreSQL with pgvector extension
+  postgres:
+    image: postgres:15-alpine
+    container_name: carq-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: carq
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/init-pgvector.sql:/docker-entrypoint-initdb.d/01-pgvector.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis for caching (optional)
+  redis:
+    image: redis:7-alpine
+    container_name: carq-redis
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # CARQ API Server
+  carq:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    container_name: carq-api
+    environment:
+      CARQ_ENVIRONMENT: development
+      CARQ_DEBUG: "true"
+      CARQ_DB_HOST: postgres
+      CARQ_DB_PORT: 5432
+      CARQ_DB_USER: postgres
+      CARQ_DB_PASSWORD: postgres
+      CARQ_DB_DATABASE: carq
+      CARQ_REDIS_ENABLED: "true"
+      CARQ_REDIS_HOST: redis
+      CARQ_REDIS_PORT: 6379
+      CARQ_API_DEBUG: "true"
+      CARQ_API_RELOAD: "true"
+      CARQ_LOG_LEVEL: DEBUG
+      CARQ_LOG_FORMAT: text
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./src:/app/src
+      - ./migrations:/app/migrations
+    command: >
+      bash -c "
+      alembic upgrade head &&
+      uvicorn carq.api.server:app --host 0.0.0.0 --port 8000 --reload
+      "
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Optional: pgAdmin for database inspection
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: carq-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@example.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  default:
+    name: carq-network

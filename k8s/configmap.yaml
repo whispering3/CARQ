@@ -1,0 +1,64 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: carq-config
+  namespace: carq
+  labels:
+    app.kubernetes.io/name: carq
+    app.kubernetes.io/component: config
+data:
+  # Application environment
+  CARQ_ENVIRONMENT: "production"
+  CARQ_DEBUG: "false"
+
+  # Logging
+  CARQ_LOG_LEVEL: "INFO"
+  CARQ_LOG_FORMAT: "json"
+
+  # Database (non-sensitive)
+  CARQ_DB_HOST: "postgres-svc"
+  CARQ_DB_PORT: "5432"
+  CARQ_DB_DATABASE: "carq"
+  CARQ_DB_POOL_SIZE: "20"
+  CARQ_DB_MAX_OVERFLOW: "10"
+  CARQ_DB_POOL_TIMEOUT: "30"
+  CARQ_DB_ECHO: "false"
+
+  # Redis (non-sensitive)
+  CARQ_REDIS_ENABLED: "true"
+  CARQ_REDIS_HOST: "redis-svc"
+  CARQ_REDIS_PORT: "6379"
+  CARQ_REDIS_TTL: "3600"
+
+  # Workers
+  CARQ_WORKER_PDF_PARSER_WORKERS: "4"
+  CARQ_WORKER_CHUNK_WORKERS: "8"
+  CARQ_WORKER_EMBEDDING_WORKERS: "2"
+  CARQ_WORKER_VECTOR_INSERT_WORKERS: "4"
+  CARQ_WORKER_BATCH_SIZE: "100"
+  CARQ_WORKER_TASK_TIMEOUT: "300"
+  CARQ_WORKER_RETRY_MAX_ATTEMPTS: "3"
+
+  # Circuit Breaker
+  CARQ_CIRCUIT_FAILURE_THRESHOLD: "5"
+  CARQ_CIRCUIT_RECOVERY_TIMEOUT: "60"
+  CARQ_CIRCUIT_SUCCESS_THRESHOLD: "2"
+
+  # Rate Limiting
+  CARQ_RATELIMIT_OPENAI_RPM: "3000"
+  CARQ_RATELIMIT_OPENAI_TPM: "1500000"
+  CARQ_RATELIMIT_LOCAL_EMBEDDING_WORKERS: "4"
+  CARQ_RATELIMIT_REFILL_RATE: "100.0"
+  CARQ_RATELIMIT_BURST_CAPACITY: "1000.0"
+
+  # Embedding
+  CARQ_EMBEDDING_PROVIDER: "openai"
+  CARQ_EMBEDDING_OPENAI_MODEL: "text-embedding-3-large"
+  CARQ_EMBEDDING_DIMENSION: "3072"
+  CARQ_EMBEDDING_CACHE_EMBEDDINGS: "true"
+
+  # API
+  CARQ_API_HOST: "0.0.0.0"
+  CARQ_API_PORT: "8000"
+  CARQ_API_WORKERS: "4"
+  CARQ_API_JWT_ALGORITHM: "HS256"

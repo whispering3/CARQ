@@ -1,0 +1,99 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: carq-worker
+  namespace: carq
+  labels:
+    app.kubernetes.io/name: carq
+    app.kubernetes.io/component: worker
+    app: carq
+    version: "1.0.0"
+spec:
+  replicas: 4
+  selector:
+    matchLabels:
+      app: carq
+      component: worker
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+  template:
+    metadata:
+      labels:
+        app: carq
+        component: worker
+        version: "1.0.0"
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+        prometheus.io/path: "/metrics"
+    spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values:
+                        - carq
+                    - key: component
+                      operator: In
+                      values:
+                        - worker
+                topologyKey: kubernetes.io/hostname
+      # Longer grace period: workers need time to finish in-flight tasks
+      terminationGracePeriodSeconds: 120
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      containers:
+        - name: carq-worker
+          image: carq:latest
+          imagePullPolicy: IfNotPresent
+          command: ["python", "-m", "carq.worker.worker_pool"]
+          envFrom:
+            - configMapRef:
+                name: carq-config
+            - secretRef:
+                name: carq-secret
+          resources:
+            requests:
+              cpu: 250m
+              memory: 256Mi
+            limits:
+              cpu: 1000m
+              memory: 1Gi
+          # Workers don't expose HTTP; use exec-based liveness instead
+          livenessProbe:
+            exec:
+              command:
+                - python
+                - -c
+                - "import carq; print('ok')"
+            initialDelaySeconds: 30
+            periodSeconds: 60
+            timeoutSeconds: 10
+            failureThreshold: 3
+          lifecycle:
+            preStop:
+              exec:
+                # Signal the worker pool to drain and stop accepting new tasks
+                command: ["python", "-c", "import signal, os; os.kill(os.getpid(), signal.SIGTERM)"]
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}

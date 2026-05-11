@@ -1,0 +1,132 @@
+name: Release — Build e Push Docker Hub
+
+# Disparado ao publicar uma Release ou ao criar uma Tag semântica
+on:
+  release:
+    types: [published]
+  push:
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]+"        # v1.2.3
+      - "v[0-9]+.[0-9]+.[0-9]+-*"      # v1.2.3-rc1, v1.2.3-beta.1
+
+env:
+  DOCKERHUB_IMAGE: choquelnews/carq
+
+jobs:
+  # ───────────────────────────────────────────────────────────────────────────
+  testes:
+    name: Lint, Testes e Segurança
+    uses: ./.github/workflows/ci.yml
+    secrets: inherit
+
+  # ───────────────────────────────────────────────────────────────────────────
+  build-e-push:
+    name: Build & Push — Docker Hub
+    needs: testes
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v4
+
+      # Configura QEMU para builds multi-arquitetura (amd64 + arm64)
+      - name: Configurar QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Configurar Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # Login no Docker Hub usando secrets do repositório
+      - name: Login no Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: choquelnews
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # Extrai as tags e labels automaticamente a partir da tag/release do Git
+      # Exemplos de tags geradas:
+      #   v1.2.3  →  usuario/carq:1.2.3, usuario/carq:1.2, usuario/carq:1, usuario/carq:latest
+      #   v1.2.3-rc1 → usuario/carq:1.2.3-rc1  (sem 'latest')
+      - name: Extrair metadados da imagem
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.DOCKERHUB_IMAGE }}
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+            type=raw,value=latest,enable=${{ !contains(github.ref, '-') }}
+          labels: |
+            org.opencontainers.image.title=CARQ
+            org.opencontainers.image.description=Pipeline de ingestão e busca semântica de documentos
+            org.opencontainers.image.vendor=${{ github.repository_owner }}
+
+      # Build multi-plataforma e push para o Docker Hub
+      - name: Build e Push da imagem Docker
+        id: push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: docker/Dockerfile
+          push: true
+          platforms: linux/amd64,linux/arm64
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # Atualiza a descrição do repositório no Docker Hub com o conteúdo do README
+      - name: Atualizar descrição no Docker Hub
+        uses: peter-evans/dockerhub-description@v4
+        with:
+          username: choquelnews
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          repository: ${{ env.DOCKERHUB_IMAGE }}
+          readme-filepath: ./README.md
+          short-description: "Pipeline de ingestão e busca semântica de documentos"
+
+  # ───────────────────────────────────────────────────────────────────────────
+  notificar-release:
+    name: Sumário da Release
+    needs: build-e-push
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Resumo no GitHub
+        run: |
+          TAG="${{ github.ref_name }}"
+          STATUS="${{ needs.build-e-push.result }}"
+          IMAGE="${{ secrets.DOCKERHUB_USERNAME }}/carq"
+
+          if [ "$STATUS" = "success" ]; then
+            EMOJI="✅"
+            MSG="Imagem publicada com sucesso no Docker Hub."
+          else
+            EMOJI="❌"
+            MSG="Falha ao publicar a imagem. Verifique os logs acima."
+          fi
+
+          cat >> $GITHUB_STEP_SUMMARY <<EOF
+          ## ${EMOJI} Release ${TAG}
+
+          **Status:** ${MSG}
+
+          **Imagem:** \`docker pull ${IMAGE}:${TAG#v}\`
+
+          ### Tags publicadas
+          \`\`\`
+          docker pull ${IMAGE}:${TAG#v}
+          docker pull ${IMAGE}:latest
+          \`\`\`
+
+          ### Como usar
+          \`\`\`bash
+          docker run -d \\
+            --env-file .env \\
+            -p 8000:8000 \\
+            ${IMAGE}:${TAG#v}
+          \`\`\`
+          EOF

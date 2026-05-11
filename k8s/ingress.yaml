@@ -1,0 +1,50 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: carq-ingress
+  namespace: carq
+  labels:
+    app.kubernetes.io/name: carq
+    app.kubernetes.io/component: ingress
+  annotations:
+    # TLS certificate provisioned by cert-manager (Let's Encrypt)
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+
+    # Nginx controller
+    kubernetes.io/ingress.class: "nginx"
+
+    # Rate limiting: 100 req/s per IP, burst up to 200
+    nginx.ingress.kubernetes.io/limit-rps: "100"
+    nginx.ingress.kubernetes.io/limit-connections: "50"
+    nginx.ingress.kubernetes.io/limit-burst-multiplier: "2"
+
+    # Proxy timeouts for long-running embedding requests
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "10"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "120"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "120"
+
+    # Request body size limit (for PDF uploads)
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+
+    # Security headers
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      more_set_headers "X-Content-Type-Options: nosniff";
+      more_set_headers "X-Frame-Options: DENY";
+      more_set_headers "X-XSS-Protection: 1; mode=block";
+      more_set_headers "Referrer-Policy: strict-origin-when-cross-origin";
+spec:
+  tls:
+    - hosts:
+        - carq.example.com
+      secretName: carq-tls
+  rules:
+    - host: carq.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: carq-api-svc
+                port:
+                  number: 80

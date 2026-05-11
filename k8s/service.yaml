@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: carq-api-svc
+  namespace: carq
+  labels:
+    app.kubernetes.io/name: carq
+    app.kubernetes.io/component: api
+    app: carq
+spec:
+  type: ClusterIP
+  selector:
+    app: carq
+    component: api
+  ports:
+    - name: http
+      protocol: TCP
+      port: 80
+      targetPort: 8000
