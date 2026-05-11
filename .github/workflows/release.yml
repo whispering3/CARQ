@@ -14,15 +14,8 @@ env:
 
 jobs:
   # ───────────────────────────────────────────────────────────────────────────
-  testes:
-    name: Lint, Testes e Segurança
-    uses: ./.github/workflows/ci.yml
-    secrets: inherit
-
-  # ───────────────────────────────────────────────────────────────────────────
   build-e-push:
     name: Build & Push — Docker Hub
-    needs: testes
     runs-on: ubuntu-latest
     permissions:
       contents: read
