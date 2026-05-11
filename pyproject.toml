@@ -26,7 +26,6 @@ dependencies = [
     "pgvector>=0.2,<1.0",
 
     # Async e Concorrência
-    "asyncio-contextmanager>=1.0,<2.0",
     "aiohttp>=3.9,<4.0",
     "tenacity>=8.2,<10.0",
 
@@ -42,7 +41,6 @@ dependencies = [
 
     # Embeddings
     "openai>=1.0,<2.0",
-    "sentence-transformers>=2.2,<4.0",
 
     # Monitoramento
     "prometheus-client>=0.19,<1.0",
@@ -87,8 +85,8 @@ Issues = "https://github.com/whispering3/CARQ/issues"
 [tool.setuptools]
 package-dir = {"" = "src"}
 
-[tool.setuptools.packages]
-find = {}
+[tool.setuptools.packages.find]
+where = ["src"]
 
 [tool.black]
 line-length = 100
