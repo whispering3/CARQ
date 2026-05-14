@@ -2,6 +2,8 @@
 
 Sistema de orquestração de nível empresarial para pipelines de ingestão de documentos RAG, projetado para alta disponibilidade, resiliência a falhas e limitação de taxa adaptativa.
 
+[![Mentioned in Awesome Data Engineering](https://awesome.re/mentioned-badge.svg)](https://github.com/igorbarinov/awesome-data-engineering)
+
 ## 🎯 Visão Geral
 
 **CARQ** resolve três problemas críticos de engenharia que impedem pipelines RAG ingênuos de escalar:
@@ -255,7 +257,7 @@ Licença MIT - veja o arquivo LICENSE
 
 - Issues: https://github.com/whispering3/CARQ/issues
 - Discussões: https://github.com/whispering3/CARQ/discussions
-- E-mail: drsouza14gmail.com
+- E-mail: drsouza14@gmail.com
 
 ---
 
