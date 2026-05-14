@@ -3,8 +3,10 @@
 Sistema de orquestração de nível empresarial para pipelines de ingestão de documentos RAG, projetado para alta disponibilidade, resiliência a falhas e limitação de taxa adaptativa.
 
 [![Mentioned in Awesome Data Engineering](https://awesome.re/mentioned-badge.svg)](https://github.com/igorbarinov/awesome-data-engineering)
+[![Docker Pulls](https://img.shields.io/docker/pulls/choquelnews/carq.svg)](https://hub.docker.com/r/choquelnews/carq)
+[![GitHub Release](https://img.shields.io/github/v/release/whispering3/CARQ.svg)](https://github.com/whispering3/CARQ/releases)
 
-## 🎯 Visão Geral
+## Visão Geral
 
 **CARQ** resolve três problemas críticos de engenharia que impedem pipelines RAG ingênuos de escalar:
 
@@ -12,7 +14,7 @@ Sistema de orquestração de nível empresarial para pipelines de ingestão de d
 2. **Reprocessamento Catastrófico** - Recuperação cirúrgica de falhas (apenas os chunks com falha são retentados, não documentos inteiros)
 3. **Contenção de Recursos** - Pooling adaptativo e coordenação de workers para evitar saturação de conexões
 
-## 🚀 Principais Funcionalidades
+## Principais Funcionalidades
 
 ✅ **Throughput**: 10.000+ chunks/minuto com degradação elegante  
 ✅ **Durabilidade**: Garantias ACID via PostgreSQL (zero brokers externos)  
@@ -21,52 +23,54 @@ Sistema de orquestração de nível empresarial para pipelines de ingestão de d
 ✅ **Observabilidade**: Logging JSON estruturado, métricas Prometheus, IDs de correlação  
 ✅ **Escalonamento Horizontal**: Coordenação de workers multi-instância via PostgreSQL
 
-## 🏗️ Arquitetura
+## Arquitetura
 
-```
+```text
 ┌─────────────────────────────────┐
-│     ENTRY LAYER                 │  REST API, CLI, S3 Events
+│    ENTRY LAYER                  │  REST API, CLI, S3 Events
 ├─────────────────────────────────┤
-│   ORCHESTRATION LAYER           │  Queue Manager, Rate Limiter, Circuit Breaker
+│  ORCHESTRATION LAYER            │  Queue Manager, Rate Limiter, Circuit Breaker
 ├─────────────────────────────────┤
-│     WORKER LAYER                │  PDF Parser, Semantic Chunker, Embedding Dispatcher
+│    WORKER LAYER                 │  PDF Parser, Semantic Chunker, Embedding Dispatcher
 ├─────────────────────────────────┤
 │  PERSISTENCE LAYER              │  PostgreSQL + pgvector (zero external brokers)
 └─────────────────────────────────┘
+
 ```
 
 ### Schema do Banco de Dados
 
 Entidades principais:
-- **rag_documents**: Documentos raiz (PDFs, URLs, texto bruto)
-- **rag_chunks**: Segmentos de documentos fragmentados com metadados
-- **rag_embeddings**: Embeddings vetoriais com suporte a busca semântica
-- **processing_tasks**: Fila de tarefas assíncronas com rastreamento de status
-- **task_deadletter**: Tarefas com falha para investigação manual
 
-## 🛠️ Stack Tecnológica
+* **rag_documents**: Documentos raiz (PDFs, URLs, texto bruto)
+* **rag_chunks**: Segmentos de documentos fragmentados com metadados
+* **rag_embeddings**: Embeddings vetoriais com suporte a busca semântica
+* **processing_tasks**: Fila de tarefas assíncronas com rastreamento de status
+* **task_deadletter**: Tarefas com falha para investigação manual
 
-- **Runtime**: Python 3.11+
-- **Framework**: FastAPI + asyncio
-- **Banco de Dados**: PostgreSQL 15+ com extensão pgvector
-- **ORM**: SQLAlchemy 2.0
-- **Async**: aiohttp, asyncio-contextmanager
-- **Testes**: pytest, pytest-asyncio
-- **Deploy**: Docker, Kubernetes
+## Stack Tecnológica
 
-## 📦 Instalação
+* **Runtime**: Python 3.11+
+* **Framework**: FastAPI + asyncio
+* **Banco de Dados**: PostgreSQL 15+ com extensão pgvector
+* **ORM**: SQLAlchemy 2.0
+* **Async**: aiohttp, asyncio-contextmanager
+* **Testes**: pytest, pytest-asyncio
+* **Deploy**: Docker, Kubernetes
+
+## Instalação
 
 ### Pré-requisitos
 
-- Python 3.11+
-- PostgreSQL 15+ (com extensão pgvector)
-- Redis 6+ (opcional, para cache de embeddings)
+* Python 3.11+
+* PostgreSQL 15+ (com extensão pgvector)
+* Redis 6+ (opcional, para cache de embeddings)
 
-### Configuração
+### Configuração para Desenvolvimento Local
 
 ```bash
 # Clonar repositório
-git clone https://github.com/whispering3/CARQ.git
+git clone [https://github.com/whispering3/CARQ.git](https://github.com/whispering3/CARQ.git)
 cd carq
 
 # Criar ambiente virtual
@@ -85,9 +89,10 @@ alembic upgrade head
 
 # Iniciar o servidor
 uvicorn carq.api.server:app --reload
+
 ```
 
-## 🚀 Início Rápido
+## Início Rápido
 
 ### 1. Criar um Job de Ingestão de Documento
 
@@ -101,12 +106,14 @@ curl -X POST http://localhost:8000/api/v1/ingest \
       "language": "en"
     }
   }'
+
 ```
 
 ### 2. Monitorar Progresso
 
 ```bash
 curl http://localhost:8000/api/v1/tasks/{task_id}/status
+
 ```
 
 ### 3. Consultar Documentos Processados
@@ -119,9 +126,10 @@ curl -X POST http://localhost:8000/api/v1/search \
     "top_k": 5,
     "similarity_threshold": 0.7
   }'
+
 ```
 
-## 📖 Configuração
+## Configuração
 
 Todas as configurações utilizam variáveis de ambiente (veja `.env.example`):
 
@@ -142,9 +150,10 @@ CARQ_WORKER_EMBEDDING_WORKERS=2
 # Limitação de Taxa
 CARQ_RATELIMIT_OPENAI_RPM=3000
 CARQ_RATELIMIT_OPENAI_TPM=1500000
+
 ```
 
-## 🔄 Pipeline de Processamento
+## Pipeline de Processamento
 
 1. **Ingestão**: Documento enviado via API/CLI/evento S3
 2. **Enfileiramento**: Tarefa enfileirada com status `pending` em `processing_tasks`
@@ -154,16 +163,16 @@ CARQ_RATELIMIT_OPENAI_TPM=1500000
 6. **Persistência**: Inserção vetorial com segurança transacional
 7. **Conclusão**: Status atualizado, metadados indexados
 
-## 🛡️ Tratamento de Erros
+## Tratamento de Erros
 
 O CARQ utiliza recuperação de erros estruturada:
 
-- **Limite de Taxa (429)**: Backoff automático, pausa da fila por worker
-- **Erros Transitórios (5xx)**: Backoff exponencial com jitter, máximo de 3 tentativas
-- **Erros de Parsing**: Tarefa movida para DLQ, investigação do operador necessária
-- **Inserção Vetorial**: Rollback de transação, reprocessamento do chunk
+* **Limite de Taxa (429)**: Backoff automático, pausa da fila por worker
+* **Erros Transitórios (5xx)**: Backoff exponencial com jitter, máximo de 3 tentativas
+* **Erros de Parsing**: Tarefa movida para DLQ, investigação do operador necessária
+* **Inserção Vetorial**: Rollback de transação, reprocessamento do chunk
 
-## 📊 Monitoramento
+## Monitoramento
 
 ### Endpoints de Saúde
 
@@ -176,21 +185,24 @@ curl http://localhost:8000/health/ready
 
 # Status detalhado
 curl http://localhost:8000/health/status
+
 ```
 
 ### Métricas (Prometheus)
 
 ```bash
 curl http://localhost:8000/metrics
+
 ```
 
 Métricas principais:
-- `carq_chunks_processed_total` - Total de chunks processados
-- `carq_embedding_latency_seconds` - Latência de geração de embeddings
-- `carq_task_queue_depth` - Tarefas pendentes na fila
-- `carq_rate_limiter_backoff_seconds` - Duração atual do backoff
 
-## 🧪 Testes
+* `carq_chunks_processed_total` - Total de chunks processados
+* `carq_embedding_latency_seconds` - Latência de geração de embeddings
+* `carq_task_queue_depth` - Tarefas pendentes na fila
+* `carq_rate_limiter_backoff_seconds` - Duração atual do backoff
+
+## Testes
 
 ```bash
 # Testes unitários
@@ -204,22 +216,26 @@ pytest tests/load -v --benchmark-only
 
 # Relatório de cobertura
 pytest --cov=carq --cov-report=html
+
 ```
 
-## 🐳 Docker
+## Docker
+
+Para executar o projeto rapidamente em produção ou testes isolados, utilize a imagem oficial:
 
 ```bash
-# Construir imagem
-docker build -t carq:latest .
+# Baixar a imagem oficial
+docker pull choquelnews/carq:1
 
-# Executar com docker-compose
+# Executar via docker-compose (Inicia o Postgres, Redis e CARQ)
 docker-compose up -d
 
 # Verificar logs
 docker-compose logs -f carq
+
 ```
 
-## ☸️ Deploy no Kubernetes
+## Deploy no Kubernetes
 
 ```bash
 # Criar namespace
@@ -233,14 +249,15 @@ kubectl rollout status deployment/carq -n carq
 
 # Ver logs
 kubectl logs -f deployment/carq -n carq
+
 ```
 
-## 📚 Documentação
+## Documentação
 
-- [Arquitetura e Design](docs/ARCHITECTURE.md)
-- [Referência da API](docs/API.md)
-- [Schema do Banco de Dados](docs/SCHEMA.md)
-- [Runbooks Operacionais](docs/RUNBOOKS.md)
+* [Arquitetura e Design](https://www.google.com/search?q=docs/ARCHITECTURE.md)
+* [Referência da API](https://www.google.com/search?q=docs/API.md)
+* [Schema do Banco de Dados](https://www.google.com/search?q=docs/SCHEMA.md)
+* [Runbooks Operacionais](https://www.google.com/search?q=docs/RUNBOOKS.md)
 
 ## 🤝 Contribuindo
 
@@ -255,11 +272,12 @@ Licença MIT - veja o arquivo LICENSE
 
 ## 📞 Suporte
 
-- Issues: https://github.com/whispering3/CARQ/issues
-- Discussões: https://github.com/whispering3/CARQ/discussions
-- E-mail: drsouza14@gmail.com
+* Issues: https://github.com/whispering3/CARQ/issues
+* Discussões: https://github.com/whispering3/CARQ/discussions
+* E-mail: drsouza14@gmail.com
 
 ---
 
-**Status**: Pré-lançamento (v0.1.0)  
+**Status**: Produção (v1.0.0)
+
 **Última Atualização**: Maio de 2026
