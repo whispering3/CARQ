@@ -193,6 +193,7 @@ async def lifespan(app: FastAPI):
     # Inicializa componentes da aplicação
     dispatcher = EmbeddingDispatcher(
         api_key=settings.embedding.openai_api_key or "placeholder",
+        base_url=settings.embedding.openai_base_url,
     )
     vector_store = VectorStore(db_manager)
     cache = EmbeddingCache(redis_url=settings.redis.url)

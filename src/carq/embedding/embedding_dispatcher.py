@@ -79,18 +79,23 @@ class EmbeddingDispatcher:
     def __init__(
         self,
         api_key: str,
+        base_url: Optional[str] = None,
         batch_size: int = 25,
         max_retries: int = 3,
         rate_limiter: Optional[RateLimiter] = None,
     ):
         self.api_key = api_key
+        self.base_url = base_url
         self.batch_size = min(batch_size, 2048)
         self.max_retries = max_retries
         self.logger = logging.getLogger(__name__)
 
         # Cliente assíncrono OpenAI (API v1.0.0+)
         from openai import AsyncOpenAI
-        self._openai_client = AsyncOpenAI(api_key=api_key)
+        kwargs = {"api_key": api_key}
+        if base_url:
+            kwargs["base_url"] = base_url
+        self._openai_client = AsyncOpenAI(**kwargs)
 
         self.rate_limiter = rate_limiter or RateLimiter()
         self._setup_rate_limits()
@@ -271,7 +276,10 @@ class EmbeddingDispatcher:
     ) -> dict:
         """Chama a API OpenAI de forma síncrona (openai>=1.0.0). Mantido para compatibilidade com testes."""
         import openai as _openai
-        client = _openai.OpenAI(api_key=self.api_key)
+        kwargs = {"api_key": self.api_key}
+        if self.base_url:
+            kwargs["base_url"] = self.base_url
+        client = _openai.OpenAI(**kwargs)
         response = client.embeddings.create(input=text, model=model)
         return {
             "data": [{"embedding": item.embedding} for item in response.data],
@@ -300,7 +308,10 @@ class EmbeddingDispatcher:
     ) -> dict:
         """Chama a API OpenAI para um lote de textos de forma síncrona. Mantido para compatibilidade com testes."""
         import openai as _openai
-        client = _openai.OpenAI(api_key=self.api_key)
+        kwargs = {"api_key": self.api_key}
+        if self.base_url:
+            kwargs["base_url"] = self.base_url
+        client = _openai.OpenAI(**kwargs)
         response = client.embeddings.create(input=texts, model=model)
         return {
             "data": [{"embedding": item.embedding} for item in response.data],

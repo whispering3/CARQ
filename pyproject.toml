@@ -27,6 +27,7 @@ dependencies = [
 
     # Async e Concorrência
     "aiohttp>=3.9,<4.0",
+    "redis>=5.0,<6.0",
     "tenacity>=8.2,<10.0",
 
     # Framework Web

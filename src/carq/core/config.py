@@ -110,6 +110,7 @@ class EmbeddingSettings(BaseSettings):
 
     provider: str = Field(default="openai", description="Provedor de embedding: openai|local")
     openai_api_key: Optional[str] = Field(default=None, description="Chave de API da OpenAI")
+    openai_base_url: Optional[str] = Field(default=None, description="URL Base da OpenAI (para uso com endpoints compatíveis, ex: Mistral, vLLM)")
     openai_model: str = Field(
         default="text-embedding-3-large", description="Nome do modelo OpenAI"
     )
