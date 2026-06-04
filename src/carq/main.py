@@ -2,7 +2,6 @@
 Ponto de entrada da aplicação CARQ.
 Inicia o servidor FastAPI com gerenciamento de ciclo de vida (init do BD, migrações).
 """
-import asyncio
 import time
 from collections import defaultdict
 from contextlib import asynccontextmanager
@@ -11,7 +10,6 @@ from typing import Optional
 from fastapi import FastAPI, Request, Response, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import PlainTextResponse
-from sqlalchemy import text
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from carq.api.router import create_router
@@ -21,7 +19,6 @@ from carq.core.logging import CorrelationIDFilter, get_logger
 from carq.embedding.embedding_cache import EmbeddingCache
 from carq.embedding.embedding_dispatcher import EmbeddingDispatcher
 from carq.embedding.vector_store import VectorStore
-from carq.models.base import Base
 from carq.monitoring.health import HealthChecker
 from carq.monitoring.metrics import get_metrics_collector
 
@@ -178,21 +175,12 @@ async def lifespan(app: FastAPI):
     logger.info("Starting CARQ application...")
     await db_manager.initialize()
 
-    # Cria tabelas (usar migrações Alembic em produção)
-    async with db_manager.engine.begin() as conn:
-        await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
-        await conn.run_sync(Base.metadata.create_all)
-        # Índice HNSW via cast halfvec (suporta >2000 dims, pgvector ≥0.7)
-        await conn.execute(text(
-            "CREATE INDEX IF NOT EXISTS idx_embedding_vector "
-            "ON rag_embeddings USING hnsw "
-            "((embedding::halfvec(3072)) halfvec_cosine_ops) "
-            "WITH (m = 16, ef_construction = 64)"
-        ))
+    if settings.environment == "production" and not settings.embedding.openai_api_key:
+        raise RuntimeError("CARQ_EMBEDDING_OPENAI_API_KEY is required in production")
 
     # Inicializa componentes da aplicação
     dispatcher = EmbeddingDispatcher(
-        api_key=settings.embedding.openai_api_key or "placeholder",
+        api_key=settings.embedding.openai_api_key or "missing-openai-key",
         base_url=settings.embedding.openai_base_url,
     )
     vector_store = VectorStore(db_manager)

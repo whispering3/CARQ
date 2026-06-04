@@ -6,16 +6,13 @@ Tests cover:
 - Chunk validation (quality, duplicates)
 """
 
-import pytest
-from pathlib import Path
 from io import BytesIO
 
-import pypdf
+import pytest
 
-from carq.pdf.pdf_parser import PDFParser, PDFParsingError, PDFMetadata, ParsedPage
-from carq.pdf.semantic_chunker import SemanticChunker, ChunkingConfig, Chunk
 from carq.pdf.chunk_validator import ChunkValidator, ValidationResult
-
+from carq.pdf.pdf_parser import ParsedPage, PDFMetadata, PDFParser, PDFParsingError
+from carq.pdf.semantic_chunker import Chunk, ChunkingConfig, SemanticChunker
 
 # ============================================================================
 # FIXTURES
@@ -25,9 +22,8 @@ from carq.pdf.chunk_validator import ChunkValidator, ValidationResult
 @pytest.fixture
 def sample_pdf_content():
     """Create a simple PDF for testing."""
-    from pypdf import PdfWriter
-    from reportlab.pdfgen import canvas
     from reportlab.lib.pagesizes import letter
+    from reportlab.pdfgen import canvas
 
     # Create PDF with reportlab
     pdf_bytes = BytesIO()

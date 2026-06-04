@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Optional
 
 from dotenv import load_dotenv
-from pydantic import AliasChoices, Field, PostgresDsn, RedisDsn, field_validator, model_validator
+from pydantic import AliasChoices, Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # Carrega o .env em os.environ para que todos os sub-modelos recebam os valores

@@ -7,24 +7,24 @@ Tests cover:
 - Error handling
 """
 
-import pytest
-from unittest.mock import AsyncMock, Mock, patch
-from fastapi.testclient import TestClient
-from fastapi import FastAPI
+from unittest.mock import AsyncMock, patch
 
+import pytest
+from fastapi import FastAPI
+from fastapi.testclient import TestClient
+
+from carq.api.auth import APIKeyAuth
 from carq.api.models import (
+    BatchEmbedRequest,
+    BatchEmbedResponse,
+    EmbeddingModelEnum,
     EmbedRequest,
     EmbedResponse,
     SearchRequest,
     SearchResponse,
-    BatchEmbedRequest,
-    BatchEmbedResponse,
     StatsResponse,
-    EmbeddingModelEnum,
 )
-from carq.api.auth import APIKeyAuth, verify_api_key
-from carq.api.router import create_router, EmbeddingAPI
-
+from carq.api.router import EmbeddingAPI, create_router
 
 # ============================================================================
 # FIXTURES
@@ -91,7 +91,6 @@ def embedding_api(mock_dispatcher, mock_vector_store, mock_cache):
 @pytest.fixture
 def app(mock_dispatcher, mock_vector_store, mock_cache):
     """Create FastAPI test app."""
-    from unittest.mock import patch
     from carq.api.auth import _load_valid_keys
 
     _load_valid_keys.cache_clear()
@@ -359,6 +358,7 @@ async def test_embedding_api_cache_miss(embedding_api, embed_request):
 async def test_embedding_api_error_handling(embedding_api, embed_request):
     """Test error handling in embedding API."""
     from fastapi import HTTPException
+
     from carq.embedding.embedding_dispatcher import EmbeddingError
 
     # Mock error

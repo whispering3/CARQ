@@ -5,9 +5,9 @@ import logging
 import time
 from dataclasses import dataclass
 from functools import wraps
-from typing import Optional, Callable
+from typing import Callable, Optional
 
-from prometheus_client import Counter, Histogram, Gauge, CollectorRegistry
+from prometheus_client import CollectorRegistry, Counter, Gauge, Histogram
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +26,7 @@ class MetricValue:
 
 class MetricsCollector:
     """Coleta métricas Prometheus para o sistema CARQ."""
-    
+
     # CORREÇÃO CRÍTICA: Whitelist de endpoints para evitar cardinalidade ilimitada
     VALID_ENDPOINTS = {"/embed", "/batch", "/search", "/health", "other"}
     VALID_ERROR_TYPES = {"validation", "timeout", "rate_limit", "internal", "unknown"}
@@ -161,11 +161,11 @@ class MetricsCollector:
         latency_seconds: float,
     ):
         """Registra métricas de requisição HTTP.
-        
+
         CORREÇÃO CRÍTICA: Valida endpoint para evitar cardinalidade ilimitada.
         """
         endpoint = self._validate_endpoint(endpoint)
-        
+
         self.http_requests_total.labels(
             endpoint=endpoint,
             method=method,
@@ -183,7 +183,7 @@ class MetricsCollector:
         error_type: str,
     ):
         """Registra erro da API.
-        
+
         CORREÇÃO CRÍTICA: Valida error_type para evitar cardinalidade ilimitada.
         """
         endpoint = self._validate_endpoint(endpoint)
@@ -251,22 +251,22 @@ class MetricsCollector:
     @staticmethod
     def _validate_endpoint(endpoint: str) -> str:
         """Valida endpoint contra a whitelist.
-        
+
         CORREÇÃO CRÍTICA: Evita cardinalidade ilimitada por endpoints arbitrários.
         """
         return endpoint if endpoint in MetricsCollector.VALID_ENDPOINTS else "other"
-    
+
     @staticmethod
     def _validate_error_type(error_type: str) -> str:
         """Valida tipo de erro contra a whitelist.
-        
+
         CORREÇÃO CRÍTICA: Evita cardinalidade ilimitada por tipos de erro arbitrários.
         """
         return error_type if error_type in MetricsCollector.VALID_ERROR_TYPES else "unknown"
 
     def get_metrics(self) -> str:
         """Retorna métricas no formato de exposição do Prometheus."""
-        from prometheus_client import CollectorRegistry, generate_latest
+        from prometheus_client import generate_latest
 
         output = generate_latest(self.registry)
         return output.decode("utf-8")

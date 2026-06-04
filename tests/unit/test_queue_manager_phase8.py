@@ -5,21 +5,18 @@ batch operations, and queue status reporting.
 """
 
 import uuid
-from datetime import datetime, timedelta
-from unittest.mock import AsyncMock, MagicMock, patch, PropertyMock
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
+from carq.core.exceptions import QueueError, TaskNotFoundError
 from carq.models.models import (
-    Document,
     DocumentStatus,
     ProcessingTask,
     TaskStatus,
     TaskType,
 )
 from carq.queue.queue_manager import QueueManager
-from carq.core.exceptions import TaskNotFoundError, QueueError
-
 
 # ============================================================================
 # HELPERS
@@ -194,6 +191,27 @@ async def test_dequeue_skips_maxed_attempts(test_session, sample_document):
 
 
 @pytest.mark.asyncio
+async def test_dequeue_claims_retrying_task(test_session, sample_document):
+    """RETRYING tasks are claimable for another processing attempt."""
+    qm = QueueManager(test_session)
+    task = ProcessingTask(
+        document_id=sample_document.id,
+        task_type=TaskType.PARSE_PDF,
+        status=TaskStatus.RETRYING,
+        attempt_count=1,
+        max_attempts=3,
+        attributes={},
+    )
+    test_session.add(task)
+    await test_session.commit()
+
+    tasks = await qm.dequeue_task(worker_id="worker-retry")
+    assert len(tasks) == 1
+    assert tasks[0].status == TaskStatus.PROCESSING
+    assert tasks[0].attempt_count == 2
+
+
+@pytest.mark.asyncio
 async def test_dequeue_filter_by_task_type(test_session, sample_document):
     """dequeue_task should filter by task_types when provided."""
     qm = QueueManager(test_session)
@@ -287,6 +305,28 @@ async def test_mark_task_failed_retryable(test_session, sample_document):
 
 
 @pytest.mark.asyncio
+async def test_mark_task_failed_terminal_updates_document(test_session, sample_document):
+    """A terminal task failure marks its document as failed."""
+    task = ProcessingTask(
+        document_id=sample_document.id,
+        task_type=TaskType.PARSE_PDF,
+        status=TaskStatus.PROCESSING,
+        attempt_count=3,
+        max_attempts=3,
+        attributes={},
+    )
+    test_session.add(task)
+    await test_session.commit()
+
+    qm = QueueManager(test_session)
+    updated = await qm.mark_task_failed(task.id, error_message="terminal failure")
+
+    assert updated.status == TaskStatus.FAILED
+    assert sample_document.status == DocumentStatus.FAILED
+    assert sample_document.error_message == "terminal failure"
+
+
+@pytest.mark.asyncio
 async def test_mark_task_failed_not_found(test_session):
     """mark_task_failed with unknown ID raises exception."""
     qm = QueueManager(test_session)
@@ -344,7 +384,7 @@ async def test_attempt_count_increments_on_dequeue(test_session, sample_document
 async def test_reset_stuck_tasks_uses_mock(test_session):
     """reset_stuck_tasks executes an UPDATE and returns the rowcount."""
     from unittest.mock import MagicMock
-    from sqlalchemy import update as sa_update
+
 
     # Use a mock session so we can control rowcount
     mock_session = AsyncMock()

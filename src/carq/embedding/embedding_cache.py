@@ -90,14 +90,14 @@ class EmbeddingCache:
                 embedding = json.loads(value)
                 self.stats.hits += 1
                 self.logger.debug(
-                    f"Cache hit for text",
+                    "Cache hit for text",
                     extra={"key": key},
                 )
                 return embedding
             else:
                 self.stats.misses += 1
                 self.logger.debug(
-                    f"Cache miss for text",
+                    "Cache miss for text",
                     extra={"key": key},
                 )
                 return None
@@ -125,7 +125,7 @@ class EmbeddingCache:
             )
 
             self.logger.debug(
-                f"Cached embedding for text",
+                "Cached embedding for text",
                 extra={"key": key, "ttl": self.ttl_seconds},
             )
 
@@ -138,14 +138,14 @@ class EmbeddingCache:
     async def get_batch(self, texts: list[str]) -> dict[str, Optional[list[float]]]:
         """Busca múltiplos embeddings em cache usando MGET do Redis (operação única)."""
         if not self.client or not texts:
-            return {text: None for text in texts}
+            return dict.fromkeys(texts)
 
         try:
             keys = [self._make_key(t) for t in texts]
             values = await self.client.mget(*keys)
 
             results: dict[str, Optional[list[float]]] = {}
-            for text, value in zip(texts, values):
+            for text, value in zip(texts, values, strict=False):
                 if value is not None:
                     try:
                         results[text] = json.loads(value)
@@ -163,7 +163,7 @@ class EmbeddingCache:
         except Exception as e:
             self.logger.error(f"Batch get (MGET) falhou: {e}")
             # Degradação graciosa: retorna None para todos
-            return {text: None for text in texts}
+            return dict.fromkeys(texts)
 
     async def set_batch(
         self,
@@ -191,7 +191,7 @@ class EmbeddingCache:
             deleted = await self.client.delete(key)
 
             if deleted:
-                self.logger.debug(f"Deleted cached embedding", extra={"key": key})
+                self.logger.debug("Deleted cached embedding", extra={"key": key})
 
             return bool(deleted)
 

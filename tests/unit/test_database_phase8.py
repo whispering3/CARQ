@@ -4,15 +4,12 @@ Covers: DatabaseManager initialization, session factory, get_session
 context manager, health_check, pool_status, and error handling.
 """
 
-import asyncio
-from contextlib import asynccontextmanager
-from unittest.mock import AsyncMock, MagicMock, Mock, patch, PropertyMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
 from carq.core.database import DatabaseManager, db
 from carq.core.exceptions import DatabaseError
-
 
 # ============================================================================
 # HELPERS
@@ -156,7 +153,7 @@ async def test_get_session_raises_when_not_initialized():
     """get_session raises DatabaseError if not initialized."""
     manager = make_db_manager()
     with pytest.raises(DatabaseError):
-        async with manager.get_session() as session:
+        async with manager.get_session():
             pass
 
 
@@ -180,7 +177,7 @@ async def test_get_session_commits_on_success():
     mock_session.__aenter__ = AsyncMock(return_value=mock_session)
     mock_session.__aexit__ = AsyncMock(return_value=False)
 
-    async with manager.get_session() as session:
+    async with manager.get_session():
         pass
 
     mock_session.commit.assert_called_once()
@@ -194,7 +191,7 @@ async def test_get_session_rolls_back_on_exception():
     mock_session.__aexit__ = AsyncMock(return_value=False)
 
     with pytest.raises(ValueError):
-        async with manager.get_session() as session:
+        async with manager.get_session():
             raise ValueError("something went wrong")
 
     mock_session.rollback.assert_called_once()
@@ -207,7 +204,7 @@ async def test_get_session_closes_on_success():
     mock_session.__aenter__ = AsyncMock(return_value=mock_session)
     mock_session.__aexit__ = AsyncMock(return_value=False)
 
-    async with manager.get_session() as session:
+    async with manager.get_session():
         pass
 
     mock_session.close.assert_called_once()
@@ -221,7 +218,7 @@ async def test_get_session_closes_on_exception():
     mock_session.__aexit__ = AsyncMock(return_value=False)
 
     with pytest.raises(RuntimeError):
-        async with manager.get_session() as session:
+        async with manager.get_session():
             raise RuntimeError("crash")
 
     mock_session.close.assert_called_once()
@@ -331,7 +328,6 @@ async def test_get_pool_status_initialized():
 
 def test_global_db_is_database_manager():
     """The global `db` object is a DatabaseManager instance."""
-    from carq.core.database import db
     assert isinstance(db, DatabaseManager)
 
 
@@ -343,7 +339,7 @@ def test_global_db_is_database_manager():
 @pytest.mark.asyncio
 async def test_get_db_session_dependency():
     """get_db_session is an async generator that yields a session."""
-    from carq.core.database import get_db_session, db
+    from carq.core.database import get_db_session
 
     manager, mock_session = make_initialized_manager()
     mock_session.__aenter__ = AsyncMock(return_value=mock_session)

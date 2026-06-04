@@ -2,7 +2,7 @@
 
 import asyncio
 from contextlib import asynccontextmanager
-from typing import AsyncGenerator, Optional
+from typing import AsyncGenerator
 
 from sqlalchemy import event, text
 from sqlalchemy.ext.asyncio import (
@@ -10,10 +10,10 @@ from sqlalchemy.ext.asyncio import (
     async_sessionmaker,
     create_async_engine,
 )
-from sqlalchemy.pool import NullPool, AsyncAdaptedQueuePool
+from sqlalchemy.pool import AsyncAdaptedQueuePool, NullPool
 
 from carq.core.config import settings
-from carq.core.exceptions import ConnectionPoolError, DatabaseError
+from carq.core.exceptions import DatabaseError
 from carq.core.logging import get_logger
 
 logger = get_logger(__name__)

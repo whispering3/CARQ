@@ -9,7 +9,6 @@ from pathlib import Path
 from typing import Optional
 
 import pypdf
-from pydantic import Field, ValidationError, field_validator
 
 from carq.core.exceptions import ProcessingError
 
@@ -216,7 +215,7 @@ class PDFParser:
         results = await asyncio.gather(*tasks, return_exceptions=True)
 
         output = []
-        for file_path, result in zip(file_paths, results):
+        for file_path, result in zip(file_paths, results, strict=False):
             if isinstance(result, Exception):
                 self.logger.error(
                     f"Batch parse failed for {file_path.name}",

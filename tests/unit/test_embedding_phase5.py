@@ -6,32 +6,28 @@ Tests cover:
 - Embedding cache (Redis operations, statistics)
 """
 
-import pytest
 import uuid
 from contextlib import asynccontextmanager
-from unittest.mock import Mock, AsyncMock, patch
-from typing import List
+from unittest.mock import AsyncMock, Mock, patch
 
+import pytest
+
+from carq.embedding.embedding_cache import (
+    CacheStats,
+    EmbeddingCache,
+)
 from carq.embedding.embedding_dispatcher import (
     EmbeddingDispatcher,
     EmbeddingModel,
     EmbeddingRequest,
     EmbeddingResult,
-    EmbeddingError,
 )
 from carq.embedding.vector_store import (
-    VectorStore,
-    SearchResult,
     EmbeddingRecord,
+    SearchResult,
+    VectorStore,
     VectorStoreError,
 )
-from carq.embedding.embedding_cache import (
-    EmbeddingCache,
-    CacheStats,
-    CacheError,
-    get_or_embed,
-)
-
 
 # ============================================================================
 # FIXTURES
@@ -250,6 +246,7 @@ async def test_embedding_dispatcher_embed_batch_with_mock(embedding_dispatcher):
     assert len(results) == 2
     assert embedding_dispatcher.embeddings_generated == 2
     assert results[0].embedding_dimension == 1536
+    assert pytest.approx(sum(value * value for value in results[0].embedding), rel=1e-6) == 1.0
 
 
 # ============================================================================
@@ -458,7 +455,7 @@ async def test_vector_store_delete_all(embedding_dispatcher):
 
     # Mock delete operation
     mock_result = Mock()
-    mock_embedding = AsyncMock()
+    AsyncMock()
 
     with patch.object(
         mock_session,
@@ -590,7 +587,7 @@ async def test_embedding_dispatcher_metrics_update():
     mock_response = {"data": [{"embedding": [0.1] * 1536}]}
 
     with patch.object(dispatcher, "_call_openai_api_async", AsyncMock(return_value=mock_response)):
-        result = await dispatcher.embed(request)
+        await dispatcher.embed(request)
 
         metrics = dispatcher.get_metrics()
         assert metrics["total_embeddings"] == 1

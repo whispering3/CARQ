@@ -3,11 +3,11 @@
 import asyncio
 import uuid
 from concurrent.futures import ThreadPoolExecutor
-from typing import Callable, Optional, Any
 from dataclasses import dataclass
+from typing import Any, Callable, Optional
 
+from carq.core.exceptions import RetryableError, TaskTimeoutError
 from carq.core.logging import get_logger
-from carq.core.exceptions import TaskTimeoutError, RetryableError
 from carq.models.models import ProcessingTask, TaskType
 
 logger = get_logger(__name__)
@@ -197,5 +197,5 @@ class WorkerPool:
             "running": self._running,
             "active_tasks": self.active_task_count,
             "max_workers": self.config.max_workers,
-            "handlers": list(t.value for t in self._task_handlers.keys()),
+            "handlers": [t.value for t in self._task_handlers.keys()],
         }

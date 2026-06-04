@@ -3,11 +3,10 @@ Conftest for integration tests.
 Provides integration-test-specific fixtures with real database and services.
 """
 
-import pytest
 import asyncio
 from typing import List
-from unittest.mock import AsyncMock, patch
 
+import pytest
 
 # ============================================================================
 # REAL DATABASE FIXTURES FOR INTEGRATION TESTS

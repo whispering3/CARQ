@@ -3,15 +3,14 @@ Unit tests for worker/worker_pool.py and worker/task_coordinator.py.
 """
 import asyncio
 import uuid
+from unittest.mock import AsyncMock
+
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch, call
-from dataclasses import dataclass
 
-from carq.worker.worker_pool import WorkerPool, WorkerConfig
-from carq.worker.task_coordinator import TaskCoordinator, CoordinatorConfig
-from carq.models.models import ProcessingTask, TaskType, TaskStatus
-from carq.core.exceptions import TaskTimeoutError, RetryableError
-
+from carq.core.exceptions import RetryableError, TaskTimeoutError
+from carq.models.models import TaskType
+from carq.worker.task_coordinator import CoordinatorConfig, TaskCoordinator
+from carq.worker.worker_pool import WorkerConfig, WorkerPool
 
 # ---------------------------------------------------------------------------
 # Fixtures

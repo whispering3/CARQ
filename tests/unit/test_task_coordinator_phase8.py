@@ -6,14 +6,13 @@ metrics, register_worker_pool, and start/stop lifecycle.
 
 import asyncio
 import uuid
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from carq.worker.task_coordinator import TaskCoordinator, CoordinatorConfig
-from carq.worker.worker_pool import WorkerPool, WorkerConfig
 from carq.models.models import TaskType
-
+from carq.worker.task_coordinator import CoordinatorConfig, TaskCoordinator
+from carq.worker.worker_pool import WorkerConfig, WorkerPool
 
 # ============================================================================
 # CREATION TESTS

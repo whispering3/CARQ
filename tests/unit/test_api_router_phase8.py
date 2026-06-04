@@ -4,27 +4,20 @@ Covers: embed, embed-batch, search, stats, health, auth failures,
 validation errors, and error propagation.
 """
 
-from unittest.mock import AsyncMock, MagicMock, Mock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from carq.api.router import create_router, EmbeddingAPI
 from carq.api.models import (
-    EmbedRequest,
-    EmbedResponse,
     EmbeddingModelEnum,
-    SearchRequest,
-    SearchResponse,
-    BatchEmbedRequest,
-    BatchEmbedResponse,
-    StatsResponse,
+    EmbedRequest,
 )
-from carq.embedding.embedding_dispatcher import EmbeddingError
+from carq.api.router import EmbeddingAPI, create_router
 from carq.embedding.embedding_cache import CacheError
+from carq.embedding.embedding_dispatcher import EmbeddingError
 from carq.embedding.vector_store import VectorStoreError
-
 
 VALID_KEY = "sk-testkey"
 HEADERS = {"X-API-Key": VALID_KEY}
@@ -88,7 +81,6 @@ def mock_cache():
 
 @pytest.fixture(autouse=True)
 def api_keys_env():
-    from unittest.mock import patch
     from carq.api.auth import _load_valid_keys
 
     _load_valid_keys.cache_clear()
@@ -199,6 +191,16 @@ def test_embed_batch_empty_texts_list(test_client):
     response = test_client.post(
         "/api/v1/embed-batch",
         json={"texts": []},
+        headers=HEADERS,
+    )
+    assert response.status_code == 422
+
+
+def test_ingest_text_requires_content(test_client):
+    """POST /documents with document_type=text requires raw content."""
+    response = test_client.post(
+        "/api/v1/documents",
+        json={"source_uri": "file:///tmp/doc.txt", "document_type": "text"},
         headers=HEADERS,
     )
     assert response.status_code == 422

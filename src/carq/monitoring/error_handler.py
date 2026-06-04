@@ -1,13 +1,12 @@
 """Tratamento centralizado de erros com gerenciamento de Dead Letter Queue (DLQ)."""
-import asyncio
 from datetime import datetime, timezone
-from typing import Optional, List, Dict, Any
-from sqlalchemy import select, update, func
+from typing import Any, Dict, List
+
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from carq.core.logging import get_logger
-from carq.core.exceptions import ProcessingError
-from carq.models.models import ProcessingTask, TaskStatus, Document, DocumentStatus
+from carq.models.models import ProcessingTask, TaskStatus
 
 logger = get_logger(__name__)
 

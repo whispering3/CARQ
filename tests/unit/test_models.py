@@ -2,14 +2,15 @@
 Unit tests for models.
 """
 
-import pytest
 from uuid import uuid4
 
+import pytest
+
 from carq.models.models import (
-    Document,
-    DocumentStatus,
     Chunk,
     ChunkStatus,
+    Document,
+    DocumentStatus,
     ProcessingTask,
     TaskStatus,
     TaskType,

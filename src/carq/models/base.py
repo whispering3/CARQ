@@ -4,10 +4,9 @@ import uuid
 from datetime import datetime, timezone
 from typing import Any
 
-from sqlalchemy import DateTime, JSON, func
-from sqlalchemy.dialects.postgresql import UUID, JSONB
-from sqlalchemy.orm import declarative_base, mapped_column, Mapped
-from sqlalchemy import Column
+from sqlalchemy import JSON, DateTime, func
+from sqlalchemy.dialects.postgresql import JSONB, UUID
+from sqlalchemy.orm import Mapped, declarative_base, mapped_column
 from sqlalchemy.types import TypeDecorator
 
 

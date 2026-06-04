@@ -54,6 +54,7 @@ services:
       CARQ_REDIS_PORT: 6379
       CARQ_API_DEBUG: "true"
       CARQ_API_RELOAD: "true"
+      CARQ_API_KEYS: "sk-dev-local"
       CARQ_LOG_LEVEL: DEBUG
       CARQ_LOG_FORMAT: text
     ports:
@@ -69,7 +70,7 @@ services:
     command: >
       bash -c "
       alembic upgrade head &&
-      uvicorn carq.api.server:app --host 0.0.0.0 --port 8000 --reload
+      uvicorn carq.main:app --host 0.0.0.0 --port 8000 --reload
       "
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health/live"]

@@ -4,14 +4,12 @@ Covers: get/set, cache miss, hit rate stats, clear, batch ops,
 key generation, and error handling.
 """
 
-import asyncio
 import json
-from unittest.mock import AsyncMock, MagicMock, patch, call
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from carq.embedding.embedding_cache import EmbeddingCache, CacheStats, CacheError
-
+from carq.embedding.embedding_cache import CacheError, CacheStats, EmbeddingCache
 
 # ============================================================================
 # HELPERS
@@ -176,7 +174,7 @@ async def test_get_hit_returns_embedding():
 async def test_get_handles_invalid_json():
     """get() returns None if cached value is invalid JSON."""
     cache = EmbeddingCache()
-    key = cache._make_key("bad data")
+    cache._make_key("bad data")
 
     mock = AsyncMock()
     mock.get = AsyncMock(return_value=b"not-valid-json{{{")
@@ -261,7 +259,7 @@ async def test_set_then_get_returns_same_embedding():
     await cache.set("roundtrip text", embedding)
 
     # Simulate what Redis would return
-    key = cache._make_key("roundtrip text")
+    cache._make_key("roundtrip text")
     stored_value = mock.setex.call_args[0][2]
 
     mock2 = AsyncMock()

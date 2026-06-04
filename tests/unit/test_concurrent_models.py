@@ -8,18 +8,20 @@ Tests cover:
 - Concurrent embedding operations
 """
 
-import pytest
 import asyncio
-from uuid import uuid4
-from datetime import datetime
+
+import pytest
 from sqlalchemy import select
 
 from carq.models.models import (
-    Document, DocumentStatus,
-    Chunk, ChunkStatus,
-    ProcessingTask, TaskStatus, TaskType,
+    Chunk,
+    ChunkStatus,
+    Document,
+    DocumentStatus,
+    ProcessingTask,
+    TaskStatus,
+    TaskType,
 )
-
 
 # ============================================================================
 # TEST: CONCURRENT SESSION ACCESS
@@ -264,7 +266,7 @@ class TestConcurrentTaskProcessing:
     @pytest.mark.asyncio
     async def test_concurrent_task_claim(self, test_session, sample_document):
         """Test claiming tasks concurrently (serialized via lock)."""
-        for i in range(5):
+        for _i in range(5):
             task = ProcessingTask(
                 document_id=sample_document.id,
                 task_type=TaskType.PARSE_PDF,
@@ -452,7 +454,7 @@ class TestConcurrentRelationshipAccess:
     @pytest.mark.asyncio
     async def test_concurrent_access_document_tasks(self, test_session, sample_document):
         """Test concurrent access to document's tasks (serialized via lock)."""
-        for i in range(5):
+        for _i in range(5):
             task = ProcessingTask(
                 document_id=sample_document.id,
                 task_type=TaskType.PARSE_PDF,

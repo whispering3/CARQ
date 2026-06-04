@@ -56,7 +56,7 @@ spec:
         - name: carq-worker
           image: carq:latest
           imagePullPolicy: IfNotPresent
-          command: ["python", "-m", "carq.worker.worker_pool"]
+          command: ["python", "-m", "carq.worker.runner"]
           envFrom:
             - configMapRef:
                 name: carq-config

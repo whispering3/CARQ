@@ -91,7 +91,7 @@ jobs:
         run: |
           TAG="${{ github.ref_name }}"
           STATUS="${{ needs.build-e-push.result }}"
-      IMAGE="choquelnews/carq"
+          IMAGE="choquelnews/carq"
 
           if [ "$STATUS" = "success" ]; then
             EMOJI="✅"

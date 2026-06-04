@@ -8,19 +8,21 @@ Tests cover:
 - Performance baselines
 """
 
-import pytest
 import asyncio
 import time
-from uuid import uuid4
-from datetime import datetime, timedelta
+
+import pytest
 from sqlalchemy import select
 
 from carq.models.models import (
-    Document, DocumentStatus,
-    Chunk, ChunkStatus,
-    ProcessingTask, TaskStatus, TaskType,
+    Chunk,
+    ChunkStatus,
+    Document,
+    DocumentStatus,
+    ProcessingTask,
+    TaskStatus,
+    TaskType,
 )
-
 
 # ============================================================================
 # TEST: END-TO-END INGEST TO SEARCH
@@ -42,7 +44,7 @@ class TestE2EIngestToSearch:
         )
         test_session.add(doc)
         await test_session.commit()
-        
+
         assert doc.id is not None
         assert doc.status == DocumentStatus.PENDING
 
@@ -59,9 +61,9 @@ class TestE2EIngestToSearch:
                 status=ChunkStatus.PENDING,
             )
             test_session.add(chunk)
-        
+
         await test_session.commit()
-        
+
         # Verify chunks created
         result = await test_session.execute(
             select(Chunk).where(Chunk.document_id == sample_document.id)
@@ -76,7 +78,7 @@ class TestE2EIngestToSearch:
         sample_chunk.status = ChunkStatus.DONE
         test_session.add(sample_chunk)
         await test_session.commit()
-        
+
         result = await test_session.execute(
             select(Chunk).where(Chunk.id == sample_chunk.id)
         )
@@ -98,9 +100,9 @@ class TestE2EIngestToSearch:
             )
             test_session.add(chunk)
             chunks.append(chunk)
-        
+
         await test_session.commit()
-        
+
         # Search for machine learning chunks
         result = await test_session.execute(
             select(Chunk)
@@ -129,7 +131,7 @@ class TestE2EIngestToSearch:
         # Ingest 10 documents (serialized to avoid session conflicts)
         doc_ids = await asyncio.gather(*[ingest_document(i) for i in range(10)])
         await test_session.commit()
-        
+
         result = await test_session.execute(
             select(Document).where(Document.id.in_(doc_ids))
         )
@@ -148,18 +150,18 @@ class TestE2EIngestToSearch:
         )
         test_session.add(task)
         await test_session.commit()
-        
+
         # Retry
         task.status = TaskStatus.RETRYING
         task.attempt_count = 2
         test_session.add(task)
         await test_session.commit()
-        
+
         # Success
         task.status = TaskStatus.DONE
         test_session.add(task)
         await test_session.commit()
-        
+
         result = await test_session.execute(
             select(ProcessingTask).where(ProcessingTask.id == task.id)
         )
@@ -172,8 +174,8 @@ class TestE2EIngestToSearch:
         """Test rate limiting during ingestion."""
         # Create multiple tasks that would be rate limited
         task_ids = []
-        
-        for i in range(5):
+
+        for _i in range(5):
             task = ProcessingTask(
                 document_id=sample_document.id,
                 task_type=TaskType.EMBED_CHUNK,
@@ -183,9 +185,9 @@ class TestE2EIngestToSearch:
             test_session.add(task)
             await test_session.flush()
             task_ids.append(task.id)
-        
+
         await test_session.commit()
-        
+
         # Verify all tasks created despite rate limiting
         result = await test_session.execute(
             select(ProcessingTask).where(ProcessingTask.id.in_(task_ids))
@@ -226,9 +228,9 @@ class TestConcurrentAccess:
         results = await asyncio.gather(*[
             session_operation(i) for i in range(50)
         ])
-        
+
         await test_session.commit()
-        
+
         # All should succeed
         assert all(r is not None for r in results)
 
@@ -244,11 +246,11 @@ class TestConcurrentAccess:
                 priority=20 - i,  # Higher priority = lower number processed first
             )
             test_session.add(task)
-        
+
         await test_session.commit()
 
         dequeued_task_ids = []
-        
+
         async def worker_dequeue():
             result = await test_session.execute(
                 select(ProcessingTask)
@@ -257,7 +259,7 @@ class TestConcurrentAccess:
                 .limit(1)
             )
             task = result.scalar_one_or_none()
-            
+
             if task:
                 dequeued_task_ids.append(task.id)
                 return task.id
@@ -265,7 +267,7 @@ class TestConcurrentAccess:
 
         # 20 workers dequeue
         results = await asyncio.gather(*[worker_dequeue() for _ in range(20)])
-        
+
         # Should have dequeued some tasks
         assert any(r is not None for r in results)
 
@@ -282,7 +284,7 @@ class TestConcurrentAccess:
                 status=ChunkStatus.PENDING,
             )
             test_session.add(chunk)
-        
+
         await test_session.commit()
 
         async def insert_vector(index):
@@ -303,7 +305,7 @@ class TestConcurrentAccess:
 
         # Insert 100 vectors concurrently
         await asyncio.gather(*[insert_vector(i) for i in range(100)])
-        
+
         await test_session.commit()
 
     @pytest.mark.asyncio
@@ -318,7 +320,7 @@ class TestConcurrentAccess:
                 content_hash=f"hash-{i}".encode(),
             )
             test_session.add(chunk)
-        
+
         await test_session.commit()
 
         async def dispatch_embedding(index):
@@ -334,7 +336,7 @@ class TestConcurrentAccess:
         results = await asyncio.gather(*[
             dispatch_embedding(i) for i in range(50)
         ])
-        
+
         assert sum(results) >= 50
 
     @pytest.mark.asyncio
@@ -380,12 +382,12 @@ class TestErrorHandling:
         )
         test_session.add(doc)
         await test_session.commit()
-        
+
         # Mark as failed
         doc.status = DocumentStatus.FAILED
         test_session.add(doc)
         await test_session.commit()
-        
+
         result = await test_session.execute(
             select(Document).where(Document.id == doc.id)
         )
@@ -399,7 +401,7 @@ class TestErrorHandling:
         sample_task.status = TaskStatus.FAILED
         test_session.add(sample_task)
         await test_session.commit()
-        
+
         # Should be retriable
         assert sample_task.attempt_count < sample_task.max_attempts
 
@@ -413,7 +415,7 @@ class TestErrorHandling:
         )
         test_session.add(doc)
         await test_session.commit()
-        
+
         # Should be able to retrieve
         result = await test_session.execute(
             select(Document).where(Document.id == doc.id)
@@ -431,7 +433,7 @@ class TestErrorHandling:
         )
         test_session.add(doc)
         await test_session.commit()
-        
+
         task = ProcessingTask(
             document_id=doc.id,
             task_type=TaskType.PARSE_PDF,
@@ -439,7 +441,7 @@ class TestErrorHandling:
         )
         test_session.add(task)
         await test_session.commit()
-        
+
         # Simulate recovery
         result = await test_session.execute(
             select(ProcessingTask).where(ProcessingTask.id == task.id)
@@ -460,7 +462,7 @@ class TestErrorHandling:
         )
         test_session.add(task)
         await test_session.commit()
-        
+
         # Verify in dead letter
         result = await test_session.execute(
             select(ProcessingTask).where(
@@ -493,7 +495,7 @@ class TestPerformanceBaselines:
         await test_session.commit()
 
         performance_timer.start()
-        
+
         # Create 1000 chunks
         for i in range(1000):
             chunk = Chunk(
@@ -503,15 +505,15 @@ class TestPerformanceBaselines:
                 content_hash=f"hash-{i}".encode(),
             )
             test_session.add(chunk)
-            
+
             if i % 100 == 0:
                 await test_session.flush()
-        
+
         await test_session.commit()
-        
+
         performance_timer.stop()
         elapsed = performance_timer.elapsed_ms / 1000  # Convert to seconds
-        
+
         # Should complete in less than 60 seconds
         assert elapsed < 60
         metrics_collector.record_success()
@@ -529,7 +531,7 @@ class TestPerformanceBaselines:
         # Measure latencies
         for i in range(100):
             start = time.time()
-            
+
             chunk = Chunk(
                 document_id=doc.id,
                 chunk_index=i,
@@ -538,12 +540,12 @@ class TestPerformanceBaselines:
             )
             test_session.add(chunk)
             await test_session.flush()
-            
+
             elapsed = (time.time() - start) * 1000  # Convert to ms
             metrics_collector.record_timing(elapsed)
-        
+
         await test_session.commit()
-        
+
         # Check p99
         p99 = metrics_collector.p99
         assert p99 < 5000  # 5 seconds in ms
@@ -567,12 +569,12 @@ class TestPerformanceBaselines:
                 content_hash=f"hash-{i}".encode(),
             )
             test_session.add(chunk)
-            
+
             if i % 10 == 0:
                 await test_session.flush()
-        
+
         await test_session.commit()
-        
+
         # Verify all created
         result = await test_session.execute(
             select(Chunk).where(Chunk.document_id == doc.id)
@@ -592,7 +594,7 @@ class TestPerformanceBaselines:
 
         # Perform typical operations
         start = time.time()
-        
+
         for i in range(50):
             # Create
             chunk = Chunk(
@@ -602,17 +604,17 @@ class TestPerformanceBaselines:
                 content_hash=f"hash-{i}".encode(),
             )
             test_session.add(chunk)
-            
+
             # Read
             result = await test_session.execute(
                 select(Chunk).where(Chunk.document_id == doc.id).limit(1)
             )
             result.scalar_one_or_none()
-        
+
         await test_session.commit()
-        
+
         elapsed = time.time() - start
-        
+
         # Should complete reasonably quickly
         assert elapsed < 30  # 30 seconds
 

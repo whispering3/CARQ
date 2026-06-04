@@ -11,34 +11,27 @@ Tests cover:
 - Dependencies
 """
 
-import pytest
-import os
-import json
 from pathlib import Path
-from typing import Optional
-from unittest.mock import Mock, patch, AsyncMock
 
+import pytest
 from pydantic import ValidationError
 
 from carq.core.config import (
-    Settings,
     DatabaseSettings,
     RedisSettings,
+    Settings,
 )
-from carq.core.database import DatabaseManager
 from carq.core.exceptions import (
     CARQException,
+    CircuitBreakerOpenError,
     ConfigurationError,
     DatabaseError,
-    ValidationException,
-    PDFParseError,
-    PDFParsingError,
     EmbeddingError,
+    PDFParseError,
     RateLimitError,
-    CircuitBreakerOpenError,
+    ValidationException,
 )
-from carq.core.logging import setup_logging, get_logger
-
+from carq.core.logging import setup_logging
 
 # ============================================================================
 # TEST: CONFIG LOADING
@@ -243,7 +236,7 @@ class TestDatabaseEngineCreation:
     async def test_sqlite_in_memory_connection(self):
         """Test SQLite in-memory connection."""
         from sqlalchemy.ext.asyncio import create_async_engine
-        
+
         engine = create_async_engine("sqlite+aiosqlite:///:memory:")
         assert engine is not None
         await engine.dispose()
@@ -276,12 +269,12 @@ class TestDatabaseEngineCreation:
     async def test_multiple_engine_instances(self):
         """Test creating multiple engine instances."""
         from sqlalchemy.ext.asyncio import create_async_engine
-        
+
         engine1 = create_async_engine("sqlite+aiosqlite:///:memory:")
         engine2 = create_async_engine("sqlite+aiosqlite:///:memory:")
-        
+
         assert engine1 is not engine2
-        
+
         await engine1.dispose()
         await engine2.dispose()
 
@@ -303,7 +296,7 @@ class TestDatabaseMigrations:
     def test_alembic_versions_directory(self):
         """Test Alembic versions directory exists."""
         migrations_dir = Path("migrations")
-        versions_dir = migrations_dir / "versions"
+        migrations_dir / "versions"
         # Directory may exist or not - test structure
         assert migrations_dir.exists() or True
 
@@ -331,7 +324,7 @@ class TestDatabaseMigrations:
             tables = inspector.get_table_names()
         except Exception:
             tables = []
-        
+
         # Should have at least some tables
         assert len(tables) > 0 or True  # Depends on Base.metadata
 
@@ -361,7 +354,6 @@ class TestLoggingStructure:
 
     def test_logging_setup(self):
         """Test logging setup function."""
-        import logging
         # Setup logging should not raise
         logger = setup_logging(level="INFO", json_format=False)
         assert logger is not None
@@ -373,19 +365,17 @@ class TestLoggingStructure:
 
     def test_correlation_id_in_logs(self):
         """Test correlation ID in log output."""
-        import logging
         from uuid import uuid4
-        
+
         logger = setup_logging(level="DEBUG")
-        correlation_id = str(uuid4())
-        
+        str(uuid4())
+
         # Should be able to log with correlation ID
         assert logger is not None
 
     def test_logger_levels(self):
         """Test different logger levels."""
-        import logging
-        
+
         levels = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
         for level in levels:
             logger = setup_logging(level=level)
@@ -393,7 +383,7 @@ class TestLoggingStructure:
 
     def test_logging_to_file(self, tmp_path):
         """Test logging to file."""
-        log_file = tmp_path / "test.log"
+        tmp_path / "test.log"
         # Should create logger that can write to file
         import logging
         logger = logging.getLogger("test")
@@ -415,17 +405,17 @@ class TestLoggingStructure:
         """Test log level filtering."""
         logger_debug = setup_logging(level="DEBUG")
         logger_info = setup_logging(level="INFO")
-        
+
         assert logger_debug is not None
         assert logger_info is not None
 
     def test_multiple_loggers(self):
         """Test creating multiple loggers."""
         import logging
-        
+
         logger1 = logging.getLogger("logger1")
         logger2 = logging.getLogger("logger2")
-        
+
         assert logger1 is not logger2
 
 
@@ -504,7 +494,7 @@ class TestExceptionTypes:
             DatabaseError("DB error"),
             ValidationException("Validation error"),
         ]
-        
+
         for exc in errors:
             assert isinstance(exc, CARQException)
 
@@ -530,7 +520,7 @@ class TestDockerComposeValidation:
     def test_docker_compose_valid_yaml(self):
         """Test docker-compose.yml is valid YAML."""
         import yaml
-        
+
         docker_file = Path("docker-compose.yml")
         with open(docker_file) as f:
             config = yaml.safe_load(f)
@@ -540,7 +530,7 @@ class TestDockerComposeValidation:
     def test_docker_compose_postgres_service(self):
         """Test PostgreSQL service in docker-compose."""
         import yaml
-        
+
         docker_file = Path("docker-compose.yml")
         with open(docker_file) as f:
             config = yaml.safe_load(f)
@@ -549,7 +539,7 @@ class TestDockerComposeValidation:
     def test_docker_compose_postgres_image(self):
         """Test PostgreSQL image specification."""
         import yaml
-        
+
         docker_file = Path("docker-compose.yml")
         with open(docker_file) as f:
             config = yaml.safe_load(f)
@@ -559,7 +549,7 @@ class TestDockerComposeValidation:
     def test_docker_compose_environment_variables(self):
         """Test environment variables in docker-compose."""
         import yaml
-        
+
         docker_file = Path("docker-compose.yml")
         with open(docker_file) as f:
             config = yaml.safe_load(f)
@@ -570,7 +560,7 @@ class TestDockerComposeValidation:
     def test_docker_compose_volumes(self):
         """Test volumes configuration in docker-compose."""
         import yaml
-        
+
         docker_file = Path("docker-compose.yml")
         with open(docker_file) as f:
             config = yaml.safe_load(f)
@@ -581,7 +571,7 @@ class TestDockerComposeValidation:
     def test_docker_compose_networks(self):
         """Test networks in docker-compose."""
         import yaml
-        
+
         docker_file = Path("docker-compose.yml")
         with open(docker_file) as f:
             config = yaml.safe_load(f)
@@ -606,7 +596,7 @@ class TestPyprojectDependencies:
     def test_pyproject_valid_toml(self):
         """Test pyproject.toml is valid TOML."""
         import tomllib
-        
+
         pyproject_file = Path("pyproject.toml")
         with open(pyproject_file, "rb") as f:
             config = tomllib.load(f)
@@ -615,7 +605,7 @@ class TestPyprojectDependencies:
     def test_project_metadata_exists(self):
         """Test project metadata is defined."""
         import tomllib
-        
+
         pyproject_file = Path("pyproject.toml")
         with open(pyproject_file, "rb") as f:
             config = tomllib.load(f)
@@ -626,7 +616,7 @@ class TestPyprojectDependencies:
     def test_dependencies_section_exists(self):
         """Test dependencies section exists."""
         import tomllib
-        
+
         pyproject_file = Path("pyproject.toml")
         with open(pyproject_file, "rb") as f:
             config = tomllib.load(f)
@@ -635,12 +625,12 @@ class TestPyprojectDependencies:
     def test_required_core_dependencies(self):
         """Test required core dependencies are present."""
         import tomllib
-        
+
         pyproject_file = Path("pyproject.toml")
         with open(pyproject_file, "rb") as f:
             config = tomllib.load(f)
             deps = config["project"]["dependencies"]
-            
+
             # Check for key dependencies
             dep_names = [d.lower().split("[")[0].split(">")[0].split("<")[0].split("=")[0] for d in deps]
             assert any("pydantic" in d for d in dep_names)
@@ -650,7 +640,7 @@ class TestPyprojectDependencies:
     def test_optional_dependencies(self):
         """Test optional dependencies are defined."""
         import tomllib
-        
+
         pyproject_file = Path("pyproject.toml")
         with open(pyproject_file, "rb") as f:
             config = tomllib.load(f)
@@ -659,7 +649,7 @@ class TestPyprojectDependencies:
     def test_dev_dependencies(self):
         """Test dev dependencies are defined."""
         import tomllib
-        
+
         pyproject_file = Path("pyproject.toml")
         with open(pyproject_file, "rb") as f:
             config = tomllib.load(f)
@@ -669,7 +659,7 @@ class TestPyprojectDependencies:
     def test_test_dependencies(self):
         """Test test dependencies are defined."""
         import tomllib
-        
+
         pyproject_file = Path("pyproject.toml")
         with open(pyproject_file, "rb") as f:
             config = tomllib.load(f)
@@ -679,7 +669,7 @@ class TestPyprojectDependencies:
     def test_python_version_requirement(self):
         """Test Python version requirement is specified."""
         import tomllib
-        
+
         pyproject_file = Path("pyproject.toml")
         with open(pyproject_file, "rb") as f:
             config = tomllib.load(f)
@@ -688,7 +678,7 @@ class TestPyprojectDependencies:
     def test_build_system_defined(self):
         """Test build system is properly defined."""
         import tomllib
-        
+
         pyproject_file = Path("pyproject.toml")
         with open(pyproject_file, "rb") as f:
             config = tomllib.load(f)

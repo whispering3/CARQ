@@ -3,11 +3,9 @@ Conftest for unit tests.
 Provides unit-test-specific fixtures and configuration.
 """
 
-import pytest
-from unittest.mock import AsyncMock, Mock, patch
-from typing import List
-import json
+from unittest.mock import AsyncMock, Mock
 
+import pytest
 
 # ============================================================================
 # MOCK FIXTURES FOR EXTERNAL SERVICES
@@ -71,8 +69,9 @@ def mock_logger():
 @pytest.fixture
 def valid_jwt_token():
     """Create a valid JWT token for testing."""
-    import jwt
     from datetime import datetime, timedelta
+
+    import jwt
 
     secret = "test-secret-key"
     payload = {
@@ -87,8 +86,9 @@ def valid_jwt_token():
 @pytest.fixture
 def expired_jwt_token():
     """Create an expired JWT token for testing."""
-    import jwt
     from datetime import datetime, timedelta
+
+    import jwt
 
     secret = "test-secret-key"
     payload = {
@@ -144,9 +144,10 @@ def sample_search_request():
 def sample_pdf_bytes():
     """Create sample PDF bytes for testing."""
     try:
-        from reportlab.pdfgen import canvas
-        from reportlab.lib.pagesizes import letter
         from io import BytesIO
+
+        from reportlab.lib.pagesizes import letter
+        from reportlab.pdfgen import canvas
 
         pdf_buffer = BytesIO()
         c = canvas.Canvas(pdf_buffer, pagesize=letter)

@@ -2,12 +2,12 @@
 
 import asyncio
 import time
-from dataclasses import dataclass, field
-from typing import Any, Dict, Optional, Tuple
+from dataclasses import dataclass
 from enum import Enum
+from typing import Any, Dict, Optional, Tuple
 
-from carq.core.logging import get_logger
 from carq.core.exceptions import RateLimitError
+from carq.core.logging import get_logger
 
 logger = get_logger(__name__)
 
@@ -35,7 +35,7 @@ class RateLimitConfig:
 class TokenBucket:
     """
     Limitador de taxa com token bucket.
-    
+
     Algoritmo:
     - Tokens acumulam na taxa refill_rate (tokens/segundo)
     - Requisição consome N tokens
@@ -81,7 +81,7 @@ class TokenBucket:
     @property
     def available_tokens(self) -> float:
         """Retorna os tokens atualmente disponíveis.
-        
+
         Retorna a contagem projetada de tokens, mas só inclui o reabastecimento
         por tempo decorrido se pelo menos 1 token inteiro seria adicionado (evita
         adições minúsculas de ponto flutuante que quebram igualdade exata em testes).
@@ -125,7 +125,7 @@ class TokenBucket:
     ) -> float:
         """
         Aguarda até que tokens estejam disponíveis.
-        
+
         CORREÇÃO CRÍTICA: Usa asyncio.Event para evitar condição de corrida
         onde múltiplas corrotinas acordam simultaneamente e transbordam tokens.
 
@@ -144,23 +144,23 @@ class TokenBucket:
         while True:
             async with self._lock:
                 await self._refill()
-                
+
                 if self.tokens >= tokens:
                     # Não consome aqui - o chamador deve consumir via consume()
                     return time.time() - start_time
-                
+
                 deficit = tokens - self.tokens
                 wait_duration = deficit / self.refill_rate
-                
+
                 elapsed = time.time() - start_time
                 if elapsed + wait_duration > max_wait:
                     raise RateLimitError(
                         f"Rate limit wait exceeded {max_wait}s",
                         retry_after=int(max_wait - elapsed),
                     )
-                
+
                 self._tokens_available.clear()
-            
+
             # Aguarda FORA do lock, para que outras corrotinas possam reabastecer
             try:
                 await asyncio.wait_for(
@@ -176,7 +176,7 @@ class TokenBucket:
 class RateLimiter:
     """
     Limitador de taxa multi-provedor com limites adaptativos.
-    
+
     Gerencia:
     - Limites de taxa por provedor (RPM, TPM)
     - Token bucket para cada provedor

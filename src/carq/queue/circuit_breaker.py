@@ -4,10 +4,10 @@ import asyncio
 import time
 from dataclasses import dataclass
 from enum import Enum
-from typing import Callable, Optional, Any, TypeVar, Coroutine
+from typing import Any, Callable, Coroutine, Optional, TypeVar
 
+from carq.core.exceptions import CircuitBreakerOpenError
 from carq.core.logging import get_logger
-from carq.core.exceptions import CircuitBreakerOpenError, RetryableError
 
 logger = get_logger(__name__)
 

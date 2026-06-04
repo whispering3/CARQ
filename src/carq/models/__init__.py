@@ -2,15 +2,15 @@
 
 from carq.models.base import Base, BaseModel
 from carq.models.models import (
-    Document,
-    DocumentStatus,
     Chunk,
     ChunkStatus,
+    Document,
+    DocumentStatus,
     Embedding,
     ProcessingTask,
-    TaskType,
-    TaskStatus,
     TaskDeadletter,
+    TaskStatus,
+    TaskType,
 )
 
 __all__ = [

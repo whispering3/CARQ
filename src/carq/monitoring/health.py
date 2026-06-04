@@ -5,11 +5,11 @@ import logging
 import time
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Optional, Dict, List
+from typing import List, Optional
 
+import redis.asyncio as redis
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
-import redis.asyncio as redis
 
 logger = logging.getLogger(__name__)
 

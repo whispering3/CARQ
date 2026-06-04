@@ -2,12 +2,11 @@
 
 import asyncio
 import random
-from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Optional
 
-from carq.core.logging import get_logger
 from carq.core.exceptions import TaskTimeoutError
+from carq.core.logging import get_logger
 
 logger = get_logger(__name__)
 

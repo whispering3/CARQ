@@ -2,13 +2,12 @@
 Unit tests for monitoring/error_handler.py — DLQ management.
 """
 import uuid
-import pytest
 from datetime import datetime, timezone
-from unittest.mock import AsyncMock, MagicMock, patch
 
-from carq.monitoring.error_handler import ErrorHandler, DLQEntry
+import pytest
+
 from carq.models.models import ProcessingTask, TaskStatus, TaskType
-
+from carq.monitoring.error_handler import DLQEntry, ErrorHandler
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -217,7 +216,8 @@ class TestGetErrorReport:
 
     async def test_report_counts(self, error_handler, session, sample_document):
         import uuid
-        from carq.models.models import ProcessingTask, TaskType, TaskStatus
+
+        from carq.models.models import TaskStatus
         # One pending task
         t1 = ProcessingTask(
             id=uuid.uuid4(),

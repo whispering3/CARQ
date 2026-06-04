@@ -3,24 +3,24 @@ Comprehensive conftest for test fixtures and configuration.
 Provides fixtures for unit, integration, and performance tests.
 """
 
-import os
 import asyncio
-import json
-from datetime import datetime, timedelta
-from typing import AsyncGenerator, Generator
+
+# Disable logging during test discovery
+import logging
+import os
+from datetime import datetime
+from typing import AsyncGenerator
 from unittest.mock import AsyncMock, Mock
 from uuid import uuid4
 
 import pytest
 
-# Disable logging during test discovery
-import logging
 logging.disable(logging.CRITICAL)
 
 # Conditional imports to handle version compatibility
 try:
-    from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
     from sqlalchemy import text
+    from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
     from sqlalchemy.pool import StaticPool
 except (ImportError, AssertionError):
     # Handle SQLAlchemy compatibility issues
@@ -31,18 +31,21 @@ except (ImportError, AssertionError):
     StaticPool = None
 
 try:
+    from carq.core.config import DatabaseSettings, RedisSettings, Settings
     from carq.models.base import Base
-    from carq.core.config import Settings, DatabaseSettings, RedisSettings
     from carq.models.models import (
-        Document, DocumentStatus,
-        Chunk, ChunkStatus,
+        Chunk,
+        ChunkStatus,
+        Document,
+        DocumentStatus,
         Embedding,
-        ProcessingTask, TaskStatus, TaskType,
-        TaskDeadletter,
+        ProcessingTask,
+        TaskStatus,
+        TaskType,
     )
-    from carq.queue.rate_limiter import TokenBucket, RateLimiter
-    from carq.queue.circuit_breaker import CircuitBreaker
     from carq.queue.backoff_strategy import BackoffStrategy
+    from carq.queue.circuit_breaker import CircuitBreaker
+    from carq.queue.rate_limiter import TokenBucket
 except (ImportError, AttributeError, ValueError):
     # Handle missing modules
     Base = None
@@ -77,7 +80,7 @@ async def test_engine():
     """Create test database engine (function-scoped for isolation)."""
     if create_async_engine is None:
         pytest.skip("SQLAlchemy not available")
-    
+
     database_url = os.getenv(
         "TEST_DATABASE_URL",
         "sqlite+aiosqlite:///:memory:",
@@ -109,7 +112,7 @@ async def test_session(test_engine) -> AsyncGenerator[AsyncSession, None]:
     """Create isolated test database session for each test."""
     if async_sessionmaker is None or AsyncSession is None:
         pytest.skip("SQLAlchemy not available")
-    
+
     session_maker = async_sessionmaker(
         test_engine,
         class_=AsyncSession,
@@ -137,7 +140,7 @@ def test_settings():
     """Create test configuration."""
     if Settings is None:
         pytest.skip("Settings not available")
-    
+
     return Settings(
         app_name="CARQ Test",
         debug=True,
@@ -169,9 +172,9 @@ def sample_document_data() -> dict:
     """Create sample document data."""
     try:
         status = DocumentStatus.PENDING if DocumentStatus else "pending"
-    except:
+    except Exception:
         status = "pending"
-    
+
     return {
         "source_uri": f"s3://bucket/test-{uuid4()}.pdf",
         "content_hash": b"test-hash-123",
@@ -189,7 +192,7 @@ async def sample_document(test_session, sample_document_data):
     """Create a sample document in test database."""
     if Document is None:
         pytest.skip("Document model not available")
-    
+
     doc = Document(**sample_document_data)
     test_session.add(doc)
     await test_session.commit()

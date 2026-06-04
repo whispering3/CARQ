@@ -1,9 +1,9 @@
 """Modelos Pydantic de requisição/resposta para a API REST."""
 
 from enum import Enum
-from typing import Optional, List
+from typing import List, Optional
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class EmbeddingModelEnum(str, Enum):
@@ -31,7 +31,7 @@ class EmbedRequest(BaseModel):
         description="Texto para gerar embedding",
     )
     model: EmbeddingModelEnum = Field(
-        default=EmbeddingModelEnum.OPENAI_3_SMALL,
+        default=EmbeddingModelEnum.OPENAI_3_LARGE,
         description="Modelo de embedding a usar",
     )
     metadata: Optional[dict] = Field(
@@ -110,7 +110,7 @@ class SearchRequest(BaseModel):
         description="Texto de consulta para busca",
     )
     model: EmbeddingModelEnum = Field(
-        default=EmbeddingModelEnum.OPENAI_3_SMALL,
+        default=EmbeddingModelEnum.OPENAI_3_LARGE,
         description="Modelo de embedding a usar",
     )
     limit: int = Field(
@@ -171,7 +171,7 @@ class BatchEmbedRequest(BaseModel):
         description="Texts to embed",
     )
     model: EmbeddingModelEnum = Field(
-        default=EmbeddingModelEnum.OPENAI_3_SMALL,
+        default=EmbeddingModelEnum.OPENAI_3_LARGE,
         description="Embedding model to use",
     )
 
@@ -301,6 +301,14 @@ class IngestRequest(BaseModel):
         default=None,
         description="Arbitrary metadata to attach to the document",
     )
+
+    @model_validator(mode="after")
+    def validate_document_source(self) -> "IngestRequest":
+        if self.document_type == DocumentType.TEXT and not (self.content and self.content.strip()):
+            raise ValueError("content is required when document_type=text")
+        if self.document_type == DocumentType.URL and not self.source_uri.startswith(("http://", "https://")):
+            raise ValueError("source_uri must be an HTTP(S) URL when document_type=url")
+        return self
 
 
 class IngestResponse(BaseModel):

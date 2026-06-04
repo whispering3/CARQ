@@ -5,12 +5,12 @@ from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from typing import Any, Optional
 
-from sqlalchemy import text, func
+from sqlalchemy import func, text
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql import select
 
 from carq.core.exceptions import ProcessingError
-from carq.models.models import Embedding, Chunk
+from carq.models.models import Embedding
 
 logger = logging.getLogger(__name__)
 
@@ -103,7 +103,7 @@ class VectorStore:
                 model=model,
                 tokens_used=tokens_used,
                 cost_usd=cost_usd,
-                metadata=metadata or {},
+                attributes=metadata or {},
             )
             session.add(db_embedding)
             await session.flush()
@@ -170,17 +170,17 @@ class VectorStore:
         """Busca semântica usando similaridade cosseno."""
         try:
             # pgvector usa o operador <=> para distância cosseno
-            # Similaridade cosseno: (1 - distância) / 2 mapeia distância [0,2] → similaridade [0,1]
+            # pgvector cosine distance is 0 for identical normalized vectors and 1 - cosine similarity.
             query_str = """
-            SELECT 
+            SELECT
                 e.id,
                 e.chunk_id,
                 e.text,
                 e.embedding,
-                (1 - (e.embedding <=> :query_embedding::vector)) / 2 as similarity_score,
+                (1 - (e.embedding <=> :query_embedding::vector)) as similarity_score,
                 e.attributes
             FROM rag_embeddings e
-            WHERE (1 - (e.embedding <=> :query_embedding::vector)) / 2 >= :threshold
+            WHERE (1 - (e.embedding <=> :query_embedding::vector)) >= :threshold
             ORDER BY similarity_score DESC
             LIMIT :limit
             """

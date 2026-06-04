@@ -4,20 +4,20 @@ import uuid
 from datetime import datetime, timezone
 from typing import Optional
 
-from sqlalchemy import and_, func, select, text, update
+from sqlalchemy import and_, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from carq.core.exceptions import (
-    TaskAlreadyProcessingError,
-    TaskNotFoundError,
     QueueError,
+    TaskNotFoundError,
 )
 from carq.core.logging import get_logger
 from carq.models.models import (
+    Document,
+    DocumentStatus,
     ProcessingTask,
     TaskStatus,
     TaskType,
-    Document,
 )
 
 logger = get_logger(__name__)
@@ -83,9 +83,10 @@ class QueueManager:
         travadas são ignoradas (SKIP LOCKED), sem condições de corrida.
         """
         try:
+            claimable_statuses = (TaskStatus.PENDING, TaskStatus.RETRYING)
             query = (
                 select(ProcessingTask)
-                .where(ProcessingTask.status == TaskStatus.PENDING)
+                .where(ProcessingTask.status.in_(claimable_statuses))
                 .where(ProcessingTask.attempt_count < ProcessingTask.max_attempts)
                 .order_by(ProcessingTask.priority.desc(), ProcessingTask.created_at.asc())
                 .limit(batch_size)
@@ -182,10 +183,14 @@ class QueueManager:
             if error_details:
                 task.attributes["error_details"] = error_details
 
-            if task.is_retryable:
+            if task.attempt_count < task.max_attempts:
                 task.status = TaskStatus.RETRYING
             else:
                 task.status = TaskStatus.FAILED
+                document = await self.session.get(Document, task.document_id)
+                if document is not None:
+                    document.status = DocumentStatus.FAILED
+                    document.error_message = error_message
 
             await self.session.flush()
 
@@ -257,15 +262,15 @@ class QueueManager:
 
     async def mark_tasks_done(self, task_ids: list[uuid.UUID]) -> int:
         """Marca tarefas em lote como concluídas.
-        
+
         CORREÇÃO CRÍTICA: Substitui N+1 atualizações individuais por atualização em lote.
         """
         if not task_ids:
             return 0
-        
+
         try:
             from datetime import datetime, timezone
-            
+
             query = (
                 update(ProcessingTask)
                 .where(ProcessingTask.id.in_(task_ids))
@@ -274,10 +279,10 @@ class QueueManager:
                     completed_at=datetime.now(timezone.utc),
                 )
             )
-            
+
             result = await self.session.execute(query)
             count = result.rowcount
-            
+
             logger.info(
                 "Batch marked tasks as done",
                 extra={
@@ -285,9 +290,9 @@ class QueueManager:
                     "requested": len(task_ids),
                 },
             )
-            
+
             return count
-        
+
         except Exception as e:
             logger.error(
                 "Failed to batch mark tasks as done",
@@ -304,12 +309,12 @@ class QueueManager:
         error_message: str = "Batch processing failed",
     ) -> int:
         """Marca tarefas em lote como falhas.
-        
+
         CORREÇÃO CRÍTICA: Substitui N+1 atualizações individuais por atualização em lote.
         """
         if not task_ids:
             return 0
-        
+
         try:
             query = (
                 update(ProcessingTask)
@@ -319,10 +324,10 @@ class QueueManager:
                     error_message=error_message,
                 )
             )
-            
+
             result = await self.session.execute(query)
             count = result.rowcount
-            
+
             logger.warning(
                 "Batch marked tasks as failed",
                 extra={
@@ -331,9 +336,9 @@ class QueueManager:
                     "error": error_message,
                 },
             )
-            
+
             return count
-        
+
         except Exception as e:
             logger.error(
                 "Failed to batch mark tasks as failed",

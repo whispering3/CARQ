@@ -2,13 +2,12 @@
 Unit tests for CLI client (carq.cli.client).
 Uses Click's CliRunner to invoke commands without a real HTTP server.
 """
-import json
+from unittest.mock import MagicMock, patch
+
 import pytest
-from unittest.mock import patch, MagicMock
 from click.testing import CliRunner
 
-from carq.cli.client import cli, make_request, get_headers
-
+from carq.cli.client import cli, make_request
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -35,7 +34,9 @@ def _mock_response(status_code: int = 200, json_data: dict = None):
 class TestGetHeaders:
     def test_no_token(self, monkeypatch):
         monkeypatch.setenv("CARQ_API_TOKEN", "")
-        import importlib, carq.cli.client as m
+        import importlib
+
+        import carq.cli.client as m
         importlib.reload(m)
         headers = m.get_headers()
         assert "Content-Type" in headers
@@ -43,7 +44,9 @@ class TestGetHeaders:
 
     def test_with_token(self, monkeypatch):
         monkeypatch.setenv("CARQ_API_TOKEN", "mytoken")
-        import importlib, carq.cli.client as m
+        import importlib
+
+        import carq.cli.client as m
         importlib.reload(m)
         headers = m.get_headers()
         assert headers.get("Authorization") == "Bearer mytoken"
@@ -110,7 +113,7 @@ class TestListCommand:
     def test_list_with_status_filter(self):
         runner = CliRunner()
         mock_resp = _mock_response(200, {"tasks": []})
-        with patch("carq.cli.client.make_request", return_value=mock_resp) as mock_req:
+        with patch("carq.cli.client.make_request", return_value=mock_resp):
             result = runner.invoke(cli, ["list", "--status-filter", "failed"])
         assert result.exit_code == 0
 

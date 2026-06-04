@@ -1,19 +1,18 @@
 """Cliente CLI do CARQ para ingestão de documentos, monitoramento de status e gerenciamento do sistema."""
 import json
+import os
 import sys
 import time
 from pathlib import Path
-from typing import Optional
-import httpx
+
 import click
+import httpx
 from rich.console import Console
-from rich.table import Table
-from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.json import JSON
+from rich.progress import Progress, SpinnerColumn, TextColumn
+from rich.table import Table
 
 console = Console()
-
-import os
 
 
 def _get_config() -> tuple[str, str, str]:
@@ -63,7 +62,13 @@ def cli():
 
 @cli.command()
 @click.argument("file_path", type=click.Path(exists=True))
-@click.option("--document-type", "-t", default="pdf", help="Tipo de documento (pdf, txt, md)")
+@click.option(
+    "--document-type",
+    "-t",
+    default="pdf",
+    type=click.Choice(["pdf", "text", "url"]),
+    help="Tipo de documento",
+)
 @click.option("--priority", "-p", default=0, type=int, help="Prioridade de processamento (maior = primeiro)")
 @click.option("--metadata", "-m", default=None, help="String de metadados JSON")
 @click.option("--wait", "-w", is_flag=True, help="Aguardar a conclusão do processamento")
@@ -74,11 +79,13 @@ def ingest(file_path, document_type, priority, metadata, wait, output):
     meta = json.loads(metadata) if metadata else {}
 
     payload = {
-        "source_uri": f"file://{path.absolute()}",
+        "source_uri": path.absolute().as_uri(),
         "document_type": document_type,
         "priority": priority,
         "attributes": meta,
     }
+    if document_type == "text":
+        payload["content"] = path.read_text(encoding="utf-8")
 
     with Progress(SpinnerColumn(), TextColumn("[progress.description]{task.description}"), transient=True) as progress:
         progress.add_task("Submitting document...", total=None)
@@ -134,7 +141,7 @@ def list_tasks(status_filter, limit, output):
 def retry(document_id):
     """Repete uma tarefa de pipeline de documento com falha."""
     try:
-        response = make_request("POST", f"/api/v1/documents/{document_id}/retry")
+        make_request("POST", f"/api/v1/documents/{document_id}/retry")
     except Exception as e:
         raise click.ClickException(str(e))
     console.print(f"[green]Document {document_id} queued for retry.[/green]")
@@ -155,7 +162,7 @@ def health():
     try:
         response = make_request("GET", "/health/ready", max_retries=1)
         data = response.json()
-        status_icon = "✅" if data.get("status") == "healthy" else "⚠️"
+        status_icon = "OK" if data.get("status") in {"healthy", "ready"} else "WARN"
         console.print(f"{status_icon} System status: [bold]{data.get('status', 'unknown')}[/bold]")
     except Exception as e:
         console.print(f"[red]❌ System unreachable: {e}[/red]")
@@ -199,15 +206,13 @@ def _print_result(data: dict, output: str, title: str = "Result"):
 
 def _print_tasks_table(tasks: list):
     table = Table(title="Tasks", show_header=True)
-    for col in ["ID", "Type", "Status", "Priority", "Attempts", "Created"]:
+    for col in ["ID", "Type", "Status", "Created"]:
         table.add_column(col, style="cyan" if col == "ID" else "white")
     for t in tasks:
         table.add_row(
             str(t.get("id", ""))[:8] + "...",
-            str(t.get("task_type", "")),
+            str(t.get("document_type", "")),
             str(t.get("status", "")),
-            str(t.get("priority", 0)),
-            str(t.get("attempt_count", 0)),
             str(t.get("created_at", ""))[:19],
         )
     console.print(table)

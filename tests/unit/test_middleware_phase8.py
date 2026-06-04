@@ -4,16 +4,14 @@ Covers: request timing, metrics recording, error handling,
 status code tracking, and middleware integration with FastAPI.
 """
 
-from unittest.mock import MagicMock, patch, call
+from unittest.mock import MagicMock, patch
 
-import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from starlette.responses import JSONResponse, Response
+from starlette.responses import JSONResponse
 
-from carq.monitoring.middleware import MetricsMiddleware
 from carq.monitoring.metrics import MetricsCollector
-
+from carq.monitoring.middleware import MetricsMiddleware
 
 # ============================================================================
 # HELPERS
@@ -50,7 +48,6 @@ def test_middleware_can_be_instantiated():
 
 def test_middleware_has_metrics_collector():
     """MetricsMiddleware initializes with a metrics collector."""
-    from starlette.applications import Starlette
 
     # We need a raw ASGIApp to test the middleware directly
     inner = MagicMock()
@@ -233,7 +230,7 @@ def test_middleware_records_exception_as_500():
             raise RuntimeError("kaboom")
 
         client = TestClient(app, raise_server_exceptions=False)
-        response = client.get("/raises")
+        client.get("/raises")
 
     # Should have recorded an HTTP request or an error
     assert (

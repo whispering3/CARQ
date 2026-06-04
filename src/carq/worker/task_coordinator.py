@@ -2,16 +2,15 @@
 
 import asyncio
 import uuid
-from datetime import datetime, timedelta
-from typing import Callable, Optional, Dict, List, TYPE_CHECKING
-from dataclasses import dataclass, field
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, Dict, List, Optional
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from carq.core.logging import get_logger
-from carq.models.models import ProcessingTask, TaskStatus, TaskType
+from carq.models.models import ProcessingTask
 from carq.queue.queue_manager import QueueManager
-from carq.worker.worker_pool import WorkerPool, WorkerConfig
+from carq.worker.worker_pool import WorkerPool
 
 if TYPE_CHECKING:
     from carq.core.database import DatabaseManager

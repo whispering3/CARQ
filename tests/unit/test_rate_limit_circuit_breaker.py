@@ -2,25 +2,25 @@
 Unit tests for rate limiting and circuit breaker.
 """
 
-import pytest
 import asyncio
-from unittest.mock import AsyncMock, patch
 
+import pytest
+
+from carq.core.exceptions import (
+    CircuitBreakerOpenError,
+    RateLimitError,
+    TaskTimeoutError,
+)
 from carq.queue import (
-    RateLimiter,
-    RateLimitProvider,
-    RateLimitConfig,
+    BackoffConfig,
     CircuitBreaker,
     CircuitBreakerConfig,
     CircuitState,
     ExponentialBackoff,
-    BackoffConfig,
+    RateLimitConfig,
+    RateLimiter,
+    RateLimitProvider,
     RetryPolicy,
-)
-from carq.core.exceptions import (
-    RateLimitError,
-    CircuitBreakerOpenError,
-    TaskTimeoutError,
 )
 
 
@@ -129,7 +129,7 @@ class TestCircuitBreaker:
             raise Exception("Service error")
 
         # Make failing calls
-        for i in range(3):
+        for _i in range(3):
             with pytest.raises(Exception):
                 await breaker.call(failing_func)
 

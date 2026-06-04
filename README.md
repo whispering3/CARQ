@@ -88,8 +88,7 @@ cp .env.example .env
 alembic upgrade head
 
 # Iniciar o servidor
-uvicorn carq.api.server:app --reload
-
+uvicorn carq.main:app --reload
 ```
 
 ## Início Rápido
@@ -97,11 +96,12 @@ uvicorn carq.api.server:app --reload
 ### 1. Criar um Job de Ingestão de Documento
 
 ```bash
-curl -X POST http://localhost:8000/api/v1/ingest \
+curl -X POST http://localhost:8000/api/v1/documents \
+  -H "X-API-Key: sk-your-key-1" \
   -H "Content-Type: application/json" \
   -d '{
-    "source_uri": "s3://bucket/path/to/document.pdf",
-    "metadata": {
+    "source_uri": "file:///data/documents/document.pdf",
+    "attributes": {
       "category": "technical",
       "language": "en"
     }

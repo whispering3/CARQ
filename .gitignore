@@ -122,6 +122,7 @@ dmypy.json
 # IDE
 .vscode/
 .idea/
+.agents/
 *.swp
 *.swo
 *~

@@ -6,21 +6,20 @@ Tests cover:
 - Middleware integration
 """
 
-import pytest
-import asyncio
 import time
-from unittest.mock import AsyncMock, Mock, patch
+from unittest.mock import Mock
 
-from carq.monitoring.metrics import MetricsCollector, get_metrics_collector
+import pytest
+
 from carq.monitoring.health import (
-    HealthChecker,
-    HealthStatus,
     HealthCheck,
+    HealthChecker,
     HealthResponse,
+    HealthStatus,
     get_health_checker,
 )
+from carq.monitoring.metrics import MetricsCollector, get_metrics_collector
 from carq.monitoring.middleware import MetricsMiddleware
-
 
 # ============================================================================
 # METRICS TESTS
@@ -320,7 +319,7 @@ async def test_metrics_middleware_request_recording():
     from fastapi.testclient import TestClient
 
     app = FastAPI()
-    middleware = MetricsMiddleware(app)
+    MetricsMiddleware(app)
 
     @app.get("/test")
     async def test_endpoint():
@@ -367,7 +366,7 @@ def test_metrics_multiple_models():
 
 def test_health_checks_performance():
     """Test health check performance."""
-    checker = HealthChecker(db_session=None, redis_url=None)
+    HealthChecker(db_session=None, redis_url=None)
 
     # Quick check should complete in reasonable time
     start = time.time()

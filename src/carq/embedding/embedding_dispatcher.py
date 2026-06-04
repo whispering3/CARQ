@@ -1,6 +1,5 @@
 """Dispatcher de embeddings com suporte a OpenAI, limitação de taxa e normalização de vetores."""
 
-import asyncio
 import hashlib
 import logging
 import math
@@ -8,12 +7,9 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Optional
 
-import openai
-from pydantic import Field, BaseModel
-
 from carq.core.exceptions import ProcessingError
-from carq.queue.rate_limiter import RateLimiter, RateLimitProvider, RateLimitConfig
-from carq.queue.backoff_strategy import ExponentialBackoff, BackoffConfig, RetryPolicy
+from carq.queue.backoff_strategy import BackoffConfig, ExponentialBackoff, RetryPolicy
+from carq.queue.rate_limiter import RateLimitConfig, RateLimiter, RateLimitProvider
 
 logger = logging.getLogger(__name__)
 
@@ -246,6 +242,7 @@ class EmbeddingDispatcher:
                 req = requests[i]
                 tokens = self._estimate_tokens(req.text)
                 cost = self._calculate_cost(tokens, req.model)
+                embedding = self._normalize_embedding(embedding_data["embedding"])
 
                 self.total_tokens_used += tokens
                 self.total_cost_usd += cost
@@ -254,7 +251,7 @@ class EmbeddingDispatcher:
                 results.append(
                     EmbeddingResult(
                         text=req.text,
-                        embedding=embedding_data["embedding"],
+                        embedding=embedding,
                         model=req.model.value,
                         tokens_used=tokens,
                         chunk_id=req.chunk_id,

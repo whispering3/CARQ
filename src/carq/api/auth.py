@@ -5,7 +5,7 @@ import os
 from functools import lru_cache
 from typing import Optional
 
-from fastapi import Depends, HTTPException, status, Header
+from fastapi import Header, HTTPException, status
 
 logger = logging.getLogger(__name__)
 

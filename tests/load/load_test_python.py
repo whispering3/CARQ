@@ -5,10 +5,11 @@ This module provides utilities for load testing the CARQ system
 using k6 (JavaScript) and Locust (Python).
 """
 
-import pytest
-from typing import List, Dict
-import time
 import asyncio
+import time
+from typing import Dict
+
+import pytest
 
 
 class LoadTestRunner:
@@ -31,7 +32,7 @@ class LoadTestRunner:
     def record_request(self, success: bool, response_time: float, error: str = None):
         """Record a request result."""
         self.results["total_requests"] += 1
-        
+
         if success:
             self.results["successful_requests"] += 1
             self.results["response_times"].append(response_time)
@@ -43,7 +44,7 @@ class LoadTestRunner:
     def get_metrics(self) -> Dict:
         """Get calculated metrics."""
         response_times = self.results["response_times"]
-        
+
         if not response_times:
             return {
                 "min_response_time": 0,
@@ -55,7 +56,7 @@ class LoadTestRunner:
                 "error_rate": 1.0 if self.results["total_requests"] > 0 else 0,
                 "throughput": 0,
             }
-        
+
         sorted_times = sorted(response_times)
         started_at = self.results.get("started_at")
         finished_at = self.results.get("finished_at")
@@ -64,7 +65,7 @@ class LoadTestRunner:
             if started_at is not None and finished_at is not None
             else max(1.0, sum(response_times) / 1000)  # Fallback for synthetic runs
         )
-        
+
         return {
             "min_response_time": min(response_times),
             "max_response_time": max(response_times),
@@ -79,7 +80,7 @@ class LoadTestRunner:
     def print_results(self):
         """Print test results."""
         metrics = self.get_metrics()
-        
+
         print("\n" + "=" * 60)
         print("LOAD TEST RESULTS")
         print("=" * 60)
@@ -87,7 +88,7 @@ class LoadTestRunner:
         print(f"Successful: {self.results['successful_requests']}")
         print(f"Failed: {self.results['failed_requests']}")
         print(f"Error Rate: {metrics['error_rate']:.2%}")
-        print(f"\nResponse Time Metrics (ms):")
+        print("\nResponse Time Metrics (ms):")
         print(f"  Min: {metrics['min_response_time']:.2f}")
         print(f"  Max: {metrics['max_response_time']:.2f}")
         print(f"  Avg: {metrics['avg_response_time']:.2f}")
@@ -103,14 +104,15 @@ class HTTPLoadTester(LoadTestRunner):
 
     async def run(self):
         """Run load test."""
-        import aiohttp
         import time
 
+        import aiohttp
+
         self.results["started_at"] = time.time()
-        
+
         async with aiohttp.ClientSession() as session:
             tasks = []
-            
+
             for _ in range(self.num_users):
                 tasks.append(self._user_session(session))
 
@@ -120,19 +122,19 @@ class HTTPLoadTester(LoadTestRunner):
     async def _user_session(self, session):
         """Simulate a user session."""
         end_time = time.time() + self.duration_seconds
-        
+
         while time.time() < end_time:
             try:
                 start = time.time()
-                
+
                 # Make request
                 async with session.get(f"{self.target_url}/health") as resp:
                     response_time = (time.time() - start) * 1000
                     self.record_request(resp.status == 200, response_time)
-                
+
                 # Think time
                 await asyncio.sleep(0.1)
-                
+
             except Exception as e:
                 response_time = (time.time() - start) * 1000
                 self.record_request(False, response_time, str(e))
@@ -146,7 +148,7 @@ class EmbeddingLoadTester(LoadTestRunner):
         import time
         self.results["started_at"] = time.time()
         tasks = []
-        
+
         for _ in range(self.num_users):
             tasks.append(self._embedding_session())
 
@@ -157,18 +159,18 @@ class EmbeddingLoadTester(LoadTestRunner):
         """Simulate embedding requests."""
         end_time = time.time() + self.duration_seconds
         request_count = 0
-        
+
         while time.time() < end_time:
             try:
                 start = time.time()
-                
+
                 # Simulate embedding operation
                 await asyncio.sleep(0.05)  # Simulate API call
-                
+
                 response_time = (time.time() - start) * 1000
                 self.record_request(True, response_time)
                 request_count += 1
-                
+
             except Exception as e:
                 response_time = (time.time() - start) * 1000
                 self.record_request(False, response_time, str(e))
@@ -182,7 +184,7 @@ class IngestionLoadTester(LoadTestRunner):
         import time
         self.results["started_at"] = time.time()
         tasks = []
-        
+
         for _ in range(self.num_users):
             tasks.append(self._ingest_session())
 
@@ -192,17 +194,17 @@ class IngestionLoadTester(LoadTestRunner):
     async def _ingest_session(self):
         """Simulate ingestion requests."""
         end_time = time.time() + self.duration_seconds
-        
+
         while time.time() < end_time:
             try:
                 start = time.time()
-                
+
                 # Simulate document ingestion
                 await asyncio.sleep(0.1)  # Simulate processing
-                
+
                 response_time = (time.time() - start) * 1000
                 self.record_request(True, response_time)
-                
+
             except Exception as e:
                 response_time = (time.time() - start) * 1000
                 self.record_request(False, response_time, str(e))
@@ -263,7 +265,7 @@ async def test_http_endpoint_load(http_load_tester):
 
     await http_load_tester.run()
     metrics = http_load_tester.get_metrics()
-    
+
     # Assert performance targets
     assert metrics["error_rate"] < 0.05  # Less than 5% error rate
     assert metrics["p99"] < 20000  # Synthetic benchmark tolerance
@@ -275,7 +277,7 @@ async def test_embedding_load(embedding_load_tester):
     """Test embedding operations under load."""
     await embedding_load_tester.run()
     metrics = embedding_load_tester.get_metrics()
-    
+
     # Assert embedding performance
     assert metrics["error_rate"] < 0.10
     assert metrics["p99"] < 3000  # P99 latency < 3 seconds
@@ -287,7 +289,7 @@ async def test_ingestion_throughput(ingestion_load_tester):
     """Test ingestion throughput."""
     await ingestion_load_tester.run()
     metrics = ingestion_load_tester.get_metrics()
-    
+
     # Assert throughput target: 10,000 chunks per minute
     # With 10 chunks per ingest request, need 1667 requests per minute
     # = 27.8 requests per second

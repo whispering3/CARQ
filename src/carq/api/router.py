@@ -1,39 +1,40 @@
 """Router REST API com endpoints de embeddings, busca e ingestão de documentos."""
 
-import asyncio
 import hashlib
 import logging
 import time
 import uuid
 from typing import Annotated, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, status, Header, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select
 
+from carq.api.auth import verify_api_key
 from carq.api.models import (
-    EmbedRequest,
-    EmbedResponse,
-    SearchRequest,
-    SearchResponse,
-    SearchResult,
     BatchEmbedRequest,
     BatchEmbedResponse,
-    StatsResponse,
+    DocumentStatusResponse,
+    EmbedRequest,
+    EmbedResponse,
     ErrorResponse,
     IngestRequest,
     IngestResponse,
-    DocumentStatusResponse,
+    SearchRequest,
+    SearchResponse,
+    SearchResult,
+    StatsResponse,
 )
-from carq.api.auth import verify_api_key
 from carq.core.database import DatabaseManager
+from carq.embedding.embedding_cache import CacheError, EmbeddingCache
 from carq.embedding.embedding_dispatcher import (
     EmbeddingDispatcher,
-    EmbeddingRequest,
-    EmbeddingModel as DispatcherModel,
     EmbeddingError,
+    EmbeddingRequest,
+)
+from carq.embedding.embedding_dispatcher import (
+    EmbeddingModel as DispatcherModel,
 )
 from carq.embedding.vector_store import VectorStore, VectorStoreError
-from carq.embedding.embedding_cache import EmbeddingCache, CacheError
 
 logger = logging.getLogger(__name__)
 
@@ -72,7 +73,7 @@ class EmbeddingAPI:
                     cached=True,
                 )
                 self.logger.debug(
-                    f"Cache hit for embed request",
+                    "Cache hit for embed request",
                     extra={"cached": True},
                 )
                 return result
@@ -386,7 +387,13 @@ def create_router(
                 detail="Document ingestion not available (database not configured)",
             )
 
-        from carq.models.models import Document, DocumentStatus, ProcessingTask, TaskType, TaskStatus
+        from carq.models.models import (
+            Document,
+            DocumentStatus,
+            ProcessingTask,
+            TaskStatus,
+            TaskType,
+        )
 
         # Deriva hash do conteúdo para deduplicação
         content_for_hash = (request.content or request.source_uri).encode("utf-8")
@@ -409,7 +416,7 @@ def create_router(
                 task_type = (
                     TaskType.PARSE_PDF
                     if request.document_type.value == "pdf"
-                    else TaskType.EMBED_CHUNK
+                    else TaskType.CHUNK_DOCUMENT
                 )
                 task = ProcessingTask(
                     document_id=doc.id,
@@ -426,7 +433,7 @@ def create_router(
                 await session.commit()
 
                 logger.info(
-                    f"Document accepted for ingestion",
+                    "Document accepted for ingestion",
                     extra={"document_id": str(doc.id), "task_id": str(task.id)},
                 )
 
@@ -577,7 +584,7 @@ def create_router(
                 detail="Database not configured",
             )
 
-        from carq.models.models import Document, ProcessingTask, TaskStatus, DocumentStatus
+        from carq.models.models import Document, DocumentStatus, ProcessingTask, TaskStatus
 
         try:
             doc_uuid = uuid.UUID(document_id)
